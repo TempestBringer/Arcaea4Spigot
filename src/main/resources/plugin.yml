@@ -1,0 +1,11 @@
+name: Arcaea
+version: '${project.version}'
+main: tempestissimo.club.arcaea.Arcaea4pigot
+api-version: 1.15
+prefix: Arcaea
+description: Arcaea In Minecraft
+commands:
+  arcaea:
+    description: "Implement Arcaea In Minecraft."
+    usage: /arcaea
+    aliases: []
