@@ -29,7 +29,7 @@ Render:
     ground_line_material:
   Position:
     # execute in which dimension
-    dimension: world
+    dimension: void
     # track base: 1 block above the centre of track 0
     ground_x: 1.0
     ground_y: 1.0
@@ -44,8 +44,12 @@ Render:
     arc_raise_ratio: 1.0
     # note default moving speed (block) per second
     default_speed_per_second: 200.0
-    # play after last note (ms)
-    wait_after_last_note: 5000.0
+  Time:
+    # play after last note (tick)
+    wait_after_last_note: 100
+    # wait before play (tick)
+    wait_before_playing: 100
+
   # don't change this on spigot server and its branches unless you want to speed up or slow down the whole render.
   # change this will cause async music and vision without Fabric's Carpet Mod to change TPS.
   tps: 20.0

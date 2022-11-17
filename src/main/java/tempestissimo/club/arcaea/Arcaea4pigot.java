@@ -41,7 +41,7 @@ public final class Arcaea4pigot extends JavaPlugin {
         this.affReader =new AffReader();
         // 渲染逻辑
         this.mainRender = new MainRender(this, this.config);
-//        this.affPlayer = new AffPlayer()
+        this.affPlayer = new AffPlayer(this, this.config);
 
     }
 

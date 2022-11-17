@@ -133,12 +133,16 @@ public class AffReader {
                 String[] segments = line.replace("hold(","").replace(");","").split(",");
                 holds.add(new Hold(Integer.parseInt(segments[0]),Integer.parseInt(segments[1]),Integer.parseInt(segments[2])));
             }else if (line.startsWith("arc(")){
-                String arc = line.replace("[","/").split("/")[0];
-                String tap = line.replace("[","/").split("/")[1];
                 ArrayList<Integer> arctaps = new ArrayList<>();
-                String[] tap_segments = tap.replace("arctap(","").replace(")","").replace("];","").split(",");
-                for (int i=0;i< tap_segments.length;i++)
-                    arctaps.add(Integer.parseInt(tap_segments[i]));
+                String[] split = line.replace("[", "/").split("/");
+                if (split.length==2){
+                    //带arctap的arc需要处理天键
+                    String tap = line.replace("[","/").split("/")[1];
+                    String[] tap_segments = tap.replace("arctap(","").replace(")","").replace("];","").split(",");
+                    for (int i=0;i< tap_segments.length;i++)
+                        arctaps.add(Integer.parseInt(tap_segments[i]));
+                }
+                String arc = line.replace("[","/").split("/")[0];
                 String[] arc_segments = arc.replace("arc(","").replace(")","").split(",");
                 Boolean flag = true;
                 if (arc_segments[8]=="true"){
@@ -167,7 +171,7 @@ public class AffReader {
     }
 
     public static void main(String[] args) throws Exception {
-        String path = "F:/arcaea/songs/pentiment/3.aff";
+        String path = "F:/arcaea/songs/pragmatism/3.aff";
         AffReader reader = new AffReader();
         ArrayList<String> command_list = reader.read_raw(path);
         HashMap<String,Object> result = reader.raw_to_timing_group(command_list);
@@ -175,7 +179,11 @@ public class AffReader {
         ArrayList<ArrayList<String>> timing_groups = (ArrayList<ArrayList<String>>) result.get("timing_groups");
         ArrayList<String> main_timing_group = (ArrayList<String>) result.get("main_timing_group");
         ArrayList<String> timing_groups_args = (ArrayList<String>) result.get("timing_groups_args");
-        reader.timing_group_parser(main_timing_group);
+
+        HashMap<String, Object> stringObjectHashMap = reader.timing_group_parser(main_timing_group);
+        for (ArrayList<String> timing_group:timing_groups){
+            reader.timing_group_parser(timing_group);
+        }
         System.out.println(file_head_dict);
     }
 }

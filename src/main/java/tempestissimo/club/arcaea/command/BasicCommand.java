@@ -42,6 +42,7 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(function_prefix+ChatColor.GOLD+" 帮助菜单");
                     player.sendMessage(function_prefix+ChatColor.WHITE+" songlist             "+ChatColor.GOLD+"   歌曲列表");
                     player.sendMessage(function_prefix+ChatColor.WHITE+" select [歌曲id] [难度]"+ChatColor.GOLD+"   查看歌曲信息");
+                    player.sendMessage(function_prefix+ChatColor.WHITE+" compile [歌曲id] [难度]"+ChatColor.GOLD+"   编译歌曲");
                     return true;
                 }
                 //歌曲菜单
@@ -159,7 +160,7 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
                     }
                     song_info_to_text(player,songIndex,ratingClass);
                     return true;
-                }else if (args[0].equalsIgnoreCase("play")){//选择某个歌曲的某个难度 /arcaea select [歌曲id] [难度]
+                }else if (args[0].equalsIgnoreCase("compile")){//选择某个歌曲的某个难度进行编译 /arcaea compile [歌曲id] [难度]
                     //过滤参数不足以及参数错误
                     if (args.length==1 || args.length==2){
                         TextComponent head_0=new TextComponent("[Arc");
@@ -178,7 +179,7 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
                         head_1.setColor(net.md_5.bungee.api.ChatColor.LIGHT_PURPLE);
                         TextComponent warn=new TextComponent("参数错误，play后应连续跟两个数字，请参考/arcaea help");
                         warn.setColor(net.md_5.bungee.api.ChatColor.RED);
-                        warn.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,"/arcaea songlist 0"));
+//                        warn.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,"/arcaea songlist 0"));
                         player.spigot().sendMessage(head_0,head_1,warn);
                         return true;
                     }
@@ -187,19 +188,82 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
                     Integer ratingClass= Integer.valueOf(args[2]);
                     //检查文件完整性
                     Boolean exist= plugin.songScanner.check_file_if_exist(songIndex,ratingClass);
+                    TextComponent head_0=new TextComponent("[Arc");
+                    head_0.setColor(net.md_5.bungee.api.ChatColor.AQUA);
+                    TextComponent head_1=new TextComponent("aea]");
+                    head_1.setColor(net.md_5.bungee.api.ChatColor.LIGHT_PURPLE);
                     if (!exist){
-                        TextComponent head_0=new TextComponent("[Arc");
-                        head_0.setColor(net.md_5.bungee.api.ChatColor.AQUA);
-                        TextComponent head_1=new TextComponent("aea]");
-                        head_1.setColor(net.md_5.bungee.api.ChatColor.LIGHT_PURPLE);
                         TextComponent warn=new TextComponent("要访问的谱面文件不存在");
                         warn.setColor(net.md_5.bungee.api.ChatColor.RED);
                         player.spigot().sendMessage(head_0,head_1,warn);
                         return true;
                     }
+                    Boolean compilable = plugin.affPlayer.onReceiveCompileCommand(songIndex, ratingClass);
+                    if (compilable){
+                        TextComponent compileOk=new TextComponent("正在编译谱面文件");
+                        compileOk.setColor(net.md_5.bungee.api.ChatColor.YELLOW);
+                        player.spigot().sendMessage(head_0,head_1,compileOk);
+                        return true;
+                    }else{
+                        TextComponent compileError=new TextComponent("无法编译，有正在编译的谱面或其他错误");
+                        compileError.setColor(net.md_5.bungee.api.ChatColor.RED);
+                        player.spigot().sendMessage(head_0,head_1,compileError);
+                        return true;
+                    }
+                }else if (args[0].equalsIgnoreCase("play")){
+                    TextComponent head_0=new TextComponent("[Arc");
+                    head_0.setColor(net.md_5.bungee.api.ChatColor.AQUA);
+                    TextComponent head_1=new TextComponent("aea]");
+                    head_1.setColor(net.md_5.bungee.api.ChatColor.LIGHT_PURPLE);
+                    if (args.length==1){ //展示编译结果以及打歌信息/arcaea play
+                        if (plugin.affPlayer.onReceivePlayCommand()){
+                            TextComponent playAvailable_0=new TextComponent("歌曲编译完毕，使用");
+                            playAvailable_0.setColor(net.md_5.bungee.api.ChatColor.WHITE);
+                            TextComponent playAvailable_1=new TextComponent("/arcaea play confirm");
+                            playAvailable_1.setColor(net.md_5.bungee.api.ChatColor.YELLOW);
+                            playAvailable_1.setBold(true);
+                            playAvailable_1.setUnderlined(true);
+                            playAvailable_1.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,"/arcaea play confirm"));
+                            TextComponent playAvailable_2=new TextComponent("来游玩！");
+                            playAvailable_2.setColor(net.md_5.bungee.api.ChatColor.WHITE);
+                            player.spigot().sendMessage(head_0,head_1,playAvailable_0,playAvailable_1,playAvailable_2);
+                        }else{
+                            TextComponent playUnavailable=new TextComponent("无歌曲被编译或编译未完成");
+                            playUnavailable.setColor(net.md_5.bungee.api.ChatColor.RED);
+                            player.spigot().sendMessage(head_0,head_1,playUnavailable);
+                        }
+                        return true;
+                    }else if(args.length==2){ // arcaea play confirm
+                        if (args[1].equalsIgnoreCase("confirm")){
+                            //确认播放前的可用性检查
+                            if (plugin.affPlayer.onReceivePlayCommand()){
+                                //执行播放
+                                Boolean playConfirm = plugin.affPlayer.onReceivePlayConfirmCommand();
+                                //反馈启动结果
+                                if (playConfirm){
+                                    TextComponent playSuccessful=new TextComponent("START！");
+                                    playSuccessful.setColor(net.md_5.bungee.api.ChatColor.GREEN);
+                                    player.spigot().sendMessage(head_0,head_1,playSuccessful);
+                                }else{
+                                    TextComponent playInternalError=new TextComponent("启动播放时出现了内部错误");
+                                    playInternalError.setColor(net.md_5.bungee.api.ChatColor.RED);
+                                    player.spigot().sendMessage(head_0,head_1,playInternalError);
+                                }
 
+                            }else{
+                                TextComponent playUnavailable=new TextComponent("无歌曲被编译或编译未完成");
+                                playUnavailable.setColor(net.md_5.bungee.api.ChatColor.RED);
+                                player.spigot().sendMessage(head_0,head_1,playUnavailable);
+                            }
+                        }else{
+                            //其他错误输入
+                            TextComponent inputError=new TextComponent("参数有误，请检查输入");
+                            inputError.setColor(net.md_5.bungee.api.ChatColor.RED);
+                            player.spigot().sendMessage(head_0,head_1,inputError);
+                        }
+                        return true;
+                    }
                 }
-
             }
         }
         return true;
@@ -238,7 +302,7 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
         TextComponent playComp = new TextComponent(">>PLAY<<");
         playComp.setBold(true);
 //        playComp.setColor(net.md_5.bungee.api.ChatColor.BOLD);
-        playComp.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/arcaea play "+songIndex+" "+ratingClass));
+        playComp.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/arcaea compile "+songIndex+" "+ratingClass));
 
         //标题和播放按钮换色
         if (diff.ratingClass==0){

@@ -1,6 +1,7 @@
 package tempestissimo.club.arcaea.utils;
 
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.scheduler.BukkitRunnable;
 import tempestissimo.club.arcaea.Arcaea4pigot;
 import tempestissimo.club.arcaea.utils.entities.Song;
 import tempestissimo.club.arcaea.utils.entities.infer_related.FillJob;
@@ -44,6 +45,38 @@ public class MainRender {
     public String green_arc_material;
     public String green_arc_centre_material;
     public String green_arc_support_material;
+    //运行时状态
+    public Boolean compiling=false;
+    public Boolean compileFinished=false;
+    public ArrayList<HashMap<String, ArrayList<FillJob>>> compileResults;
+
+
+    /**
+     * 检测是否可运行编译，如果可以则异步运行。
+     * @param songIndex
+     * @param ratingClass
+     * @return
+     */
+    public Boolean compileEntry(Integer songIndex,Integer ratingClass){
+        if (compiling){
+            return false;
+        }
+        compiling=true;compileFinished=false;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                ArrayList<HashMap<String, ArrayList<FillJob>>> results = compileSong(songIndex, ratingClass);
+                compileResults=results;
+                compiling=false;
+                compileFinished=true;
+            }
+        }.runTaskAsynchronously(plugin);
+        return true;
+    }
+
+    public Boolean playEntry(){
+        return compileFinished;
+    }
 
 
     // 思考用于存放推理结果的数据结构，可以是ArrayList<HashMap<String,Infer>>
