@@ -150,19 +150,32 @@ public class MainRender {
      */
     public ArrayList<HashMap<String, ArrayList<FillJob>>> compileTimingGroup(Song song, ArrayList<Note> notes, ArrayList<Hold> holds, ArrayList<Arc> arcs, ArrayList<Scenecontrol> sceneControls, ArrayList<Timing> timings, ArrayList<Camera> main_cameras, String timingGroupArg, String timingGroupPrefix){
         ArrayList<HashMap<String, ArrayList<FillJob>>> results = new ArrayList<>();
-        //编译Notes
+        //编译Notes，对每一个Note执行
         for (int i=0;i<notes.size();i++){
             Note note = notes.get(i);
             HashMap<Integer,ArrayList<FillJob>> compiledNote = compileNote(song,note,timings);
+            // Integer型的Key是刻，Value是在当前刻需要执行的任务
             for (Integer tick: compiledNote.keySet()){
-                if (results.get(tick).equals(null)){
-                    results.add(tick,new HashMap<>());
-                }
-                if (!results.get(tick).containsKey(timingGroupPrefix+"note_"+i)){
-                    results.get(tick).put(timingGroupPrefix+"note_"+i,compiledNote.get(tick));
+                ArrayList<FillJob> fillJobsInTick = compiledNote.get(tick);
+                if (tick<0) {
+                    //取消执行
+                }else{
+                    while(results.size()<=tick)
+                        results.add(new HashMap<>());
+                    HashMap<String, ArrayList<FillJob>> tempResults;
+                    if (!results.get(tick).containsKey(timingGroupPrefix+"note_"+i)){
+                        //物件的在该刻尚无渲染渲染
+                        tempResults = new HashMap<>();
+                    }else{
+                        //该刻存在渲染
+                        tempResults = results.get(tick);
+                    }
+                    tempResults.put(timingGroupPrefix+"note_"+i, fillJobsInTick);
+                    results.set(tick,tempResults);
                 }
             }
         }
+        System.out.println("finished compiling timing group : "+timingGroupPrefix);
         return results;
     }
 
@@ -263,33 +276,38 @@ public class MainRender {
                 break;
         }
         timings_pointer-=1;
-        Double cur_time = Double.valueOf(time);
+        //当前帧的毫秒。帧对齐，这一帧内会撞判定线
+        Double cur_time = Double.valueOf(time)-time%frame_time;
+//        Double cur_time = Double.valueOf(time);
         //位置的帧对齐，使长度极短的物件如装饰arc也可以渲染
-        Double cur_x = ground_x+(time%frame_time)*timings.get(timings_pointer).bpm*default_speed_per_second/bpm_base/1000;
+        Double cur_x = (time%frame_time)*timings.get(timings_pointer).bpm*default_speed_per_second/bpm_base/1000;
         Double forward_frame;
         Integer start_timing,end_timing;
-        while((track_x_upper_limit+ground_x)>cur_x && cur_x>(track_x_lower_limit+ground_x)){
+        while((track_x_upper_limit+ground_x)>cur_x && cur_x>(track_x_lower_limit+ground_x)) {
+            // 上一帧时间和下一帧时间
             forward_frame = cur_time - frame_time;
+            // 获取两帧之间的所有timings并计算note位移
             start_timing = 0;
             end_timing = 0;
-            for (int index=0;index<timings.size();index++){
-                if (index < timings.size() - 1){
-                    if (timings.get(index).t<= forward_frame && forward_frame<= timings.get(index+1).t)
+            for (int index = 0; index < timings.size(); index++) {
+                // 不是最后一个timing
+                if (index < (timings.size() - 1)) {
+                    if (timings.get(index).t <= forward_frame && forward_frame <= timings.get(index + 1).t)
                         start_timing = index;
-                    if (timings.get(index).t <= cur_time && cur_time<= timings.get(index+1).t)
+                    if (timings.get(index).t <= cur_time && cur_time <= timings.get(index + 1).t)
                         end_timing = index;
                 }
-
+                // 最后一个timing
                 else {
-                    if (timings.get(index).t < forward_frame){
+                    if (timings.get(index).t < forward_frame) {
                         start_timing = index;
                         end_timing = index;
                     }
                 }
             }
-            if (start_timing == end_timing)  //在同一个timing里面
+            if (start_timing == end_timing){//在同一个timing里面
                 cur_x += frame_time * timings.get(start_timing).bpm * default_speed_per_second / bpm_base / 1000;
-            else{
+            }else{ // 一帧横跨多个timing
                 for (int index=start_timing;index<end_timing+1;index++){
                     if(index==start_timing)
                         cur_x+=(timings.get(index+1).t-forward_frame)*timings.get(index).bpm*default_speed_per_second/bpm_base/1000;
@@ -297,7 +315,6 @@ public class MainRender {
                         cur_x+=(cur_time-timings.get(index).t)*timings.get(index).bpm*default_speed_per_second/bpm_base/1000;
                     else
                         cur_x+=(timings.get(index+1).t-timings.get(index).t)*timings.get(index).bpm*default_speed_per_second/bpm_base/1000;
-
                 }
             }
             x_s.add(new Infer((int)(forward_frame/frame_time),cur_x));
@@ -359,13 +376,16 @@ public class MainRender {
      * @return
      */
     public ArrayList<HashMap<String, ArrayList<FillJob>>> mergeCompileResults(ArrayList<HashMap<String, ArrayList<FillJob>>> source, ArrayList<HashMap<String, ArrayList<FillJob>>> add){
-        ArrayList<HashMap<String, ArrayList<FillJob>>> results = new ArrayList<>();
+        ArrayList<HashMap<String, ArrayList<FillJob>>> results = source;
         for (int i = 0; i < add.size(); i++) {
-            HashMap<String, ArrayList<FillJob>> tempHashMap = source.get(i);
-            for (String key:add.get(i).keySet()){
-                tempHashMap.put(key, add.get(i).get(key));
+            HashMap<String, ArrayList<FillJob>> addTemp = add.get(i);
+            while(results.size()<=i)
+                results.add(new HashMap<>());
+            HashMap<String, ArrayList<FillJob>> resultsTemp = results.get(i);
+            for (String key: addTemp.keySet()){
+                resultsTemp.put(key, addTemp.get(key));
             }
-            results.add(i,tempHashMap);
+            results.set(i,resultsTemp);
         }
         return results;
     }

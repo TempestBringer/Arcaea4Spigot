@@ -26,4 +26,12 @@ public class Note {
         }
         return results;
     }
+
+    @Override
+    public String toString() {
+        return "Note{" +
+                "t=" + t +
+                ", lane=" + lane +
+                '}';
+    }
 }

@@ -10,4 +10,13 @@ public class Timing {
         this.bpm = bpm;
         this.beats = beats;
     }
+
+    @Override
+    public String toString() {
+        return "Timing{" +
+                "t=" + t +
+                ", bpm=" + bpm +
+                ", beats=" + beats +
+                '}';
+    }
 }

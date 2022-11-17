@@ -121,7 +121,7 @@ public class AffReader {
         ArrayList<Camera> cameras = new ArrayList<>();
 
         String line = "";
-        for (int i=0; i<lines.size();i++)
+        for (int i=0; i<lines.size();i++){
             line = lines.get(i).strip();
             if (line.startsWith("timing(")){
                 String[] segments = line.replace("timing(","").replace(");","").split(",");
@@ -139,13 +139,13 @@ public class AffReader {
                     //带arctap的arc需要处理天键
                     String tap = line.replace("[","/").split("/")[1];
                     String[] tap_segments = tap.replace("arctap(","").replace(")","").replace("];","").split(",");
-                    for (int i=0;i< tap_segments.length;i++)
-                        arctaps.add(Integer.parseInt(tap_segments[i]));
+                    for (int j=0;j< tap_segments.length;j++)
+                        arctaps.add(Integer.parseInt(tap_segments[j]));
                 }
                 String arc = line.replace("[","/").split("/")[0];
                 String[] arc_segments = arc.replace("arc(","").replace(")","").split(",");
-                Boolean flag = true;
-                if (arc_segments[8]=="true"){
+                Boolean flag;
+                if (arc_segments[8].equals("true")){
                     flag = true;
                 }else
                     flag = false;
@@ -159,8 +159,9 @@ public class AffReader {
             }else if (line.startsWith("camera(")){
                 // ignore
             }else{
+                // ignore
             }
-        System.out.println("finished parse");
+        }
         result.put("timings",timings);
         result.put("scenecontrols",scenecontrols);
         result.put("arcs",arcs);
