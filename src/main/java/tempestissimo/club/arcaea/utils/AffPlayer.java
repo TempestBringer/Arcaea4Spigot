@@ -55,12 +55,14 @@ public class AffPlayer {
     public Boolean onReceivePlayConfirmCommand(){
         startPlayingTime=dimension.getTime()+wait_before_playing;
         isPlaying=true;
+        workLoad=plugin.mainRender.compileResults;
         affRenderThread=new BukkitRunnable(){
             @Override
             public void run() {
                 Long curGameTime=dimension.getTime();
                 if (curGameTime>=startPlayingTime){
                     Long tick=curGameTime-startPlayingTime;
+
                     if (tick>=workLoad.size()){
                         //超界不执行
                         isPlaying=false;
@@ -71,6 +73,14 @@ public class AffPlayer {
                         fillExecutor.executeFill(tick.intValue(),workLoad);
 
                     }
+                    System.out.println(workLoad.get(tick.intValue()).size());
+                    //debug：展示每tick操作
+//                    for (String key:workLoad.get(tick.intValue()).keySet()){
+//                        for (FillJob fill:workLoad.get(tick.intValue()).get(key)){
+//                            System.out.println(fill.toString());
+//                        }
+//
+//                    }
                 }
             }
         };

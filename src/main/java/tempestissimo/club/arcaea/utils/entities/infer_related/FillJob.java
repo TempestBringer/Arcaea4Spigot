@@ -26,4 +26,21 @@ public class FillJob {
         this.z_high=0;
         this.material="";
     }
+
+    @Override
+    public String toString() {
+        return "FillJob{" +
+                "type='" + type + '\'' +
+                ", priority=" + priority +
+                ", frame=" + frame +
+                ", behind_line=" + behind_line +
+                ", x_low=" + x_low +
+                ", x_high=" + x_high +
+                ", y_low=" + y_low +
+                ", y_high=" + y_high +
+                ", z_low=" + z_low +
+                ", z_high=" + z_high +
+                ", material='" + material + '\'' +
+                '}';
+    }
 }
