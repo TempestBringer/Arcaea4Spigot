@@ -270,7 +270,7 @@ public class MainRender {
         Double cur_time = Double.valueOf(time)-time%frame_time;
 //        Double cur_time = Double.valueOf(time);
         //位置的帧对齐，使长度极短的物件如装饰arc也可以渲染
-        Double cur_x = (time%frame_time)*timings.get(timings_pointer).bpm*default_speed_per_second/bpm_base/1000;
+        Double cur_x = (time%frame_time)*timings.get(timings_pointer).bpm*default_speed_per_second/bpm_base/1000+ground_x;
         Double forward_frame;
         Integer start_timing,end_timing;
         while((track_x_upper_limit+ground_x)>cur_x && cur_x>(track_x_lower_limit+ground_x)) {
