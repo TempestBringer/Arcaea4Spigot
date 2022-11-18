@@ -257,11 +257,14 @@ public class MainRender {
         Integer timings_pointer = 0;
         Float bpm_base = song.bpm_base;
         //正向遍历，定位到time后的第一个timing记录
-        while(timings.get(timings_pointer).t<time){
+        while(timings.get(timings_pointer).t<=time){
             timings_pointer+=1;
             if (timings_pointer==timings.size())
                 break;
         }
+        //debug
+        System.out.println("Forwarding to pointer "+(timings_pointer-1));
+
         timings_pointer-=1;
         //当前帧的毫秒。帧对齐，这一帧内会撞判定线
         Double cur_time = Double.valueOf(time)-time%frame_time;

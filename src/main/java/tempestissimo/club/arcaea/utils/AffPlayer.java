@@ -67,7 +67,7 @@ public class AffPlayer {
                 if (curGameTime>=startPlayingTime){
                     Long tick=curGameTime-startPlayingTime;
 
-                    if (tick>=maxTick){
+                    if (tick>maxTick){
                         //超界不执行
                         isPlaying=false;
                         this.cancel();
@@ -76,11 +76,11 @@ public class AffPlayer {
 //                        HashMap<String, ArrayList<FillJob>> tickJob = workLoad.get(tick.intValue());
                         executeFill(tick.intValue(),shuffledWorkLoad.get(tick.intValue()));
 
-                        System.out.println("Current Tick Work load"+shuffledWorkLoad.get(tick.intValue()).size());
                         //debug：展示每tick操作
-                        for (FillJob fill:shuffledWorkLoad.get(tick.intValue())){
-                            System.out.println(fill.toString());
-                        }
+//                        System.out.println("Current Tick Work load"+shuffledWorkLoad.get(tick.intValue()).size());
+//                        for (FillJob fill:shuffledWorkLoad.get(tick.intValue())){
+//                            System.out.println(fill.toString());
+//                        }
 
                     }
 
