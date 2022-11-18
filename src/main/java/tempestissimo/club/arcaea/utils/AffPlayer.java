@@ -1,6 +1,8 @@
 package tempestissimo.club.arcaea.utils;
 
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.scheduler.BukkitRunnable;
 import tempestissimo.club.arcaea.Arcaea4pigot;
@@ -22,11 +24,12 @@ public class AffPlayer {
     public Boolean isPlaying = false;
     public Long startPlayingTime;
     public Song curSong;
-    public ArrayList<HashMap<String, ArrayList<FillJob>>> workLoad;
+    public ArrayList<FillJob> rawWorkLoad;
+
+    public HashMap<Integer,ArrayList<FillJob>> shuffledWorkLoad;
+    public Integer maxTick=0;//终止条件
     //渲染线程
     public BukkitRunnable affRenderThread;
-    //渲染执行器
-    public FillExecutor fillExecutor;
 
     /**
      * 执行编译
@@ -55,7 +58,8 @@ public class AffPlayer {
     public Boolean onReceivePlayConfirmCommand(){
         startPlayingTime=dimension.getTime()+wait_before_playing;
         isPlaying=true;
-        workLoad=plugin.mainRender.compileResults;
+        rawWorkLoad=plugin.mainRender.compileResults;
+        shuffledWorkLoad = shuffleWorkLoad(rawWorkLoad);
         affRenderThread=new BukkitRunnable(){
             @Override
             public void run() {
@@ -63,24 +67,23 @@ public class AffPlayer {
                 if (curGameTime>=startPlayingTime){
                     Long tick=curGameTime-startPlayingTime;
 
-                    if (tick>=workLoad.size()){
+                    if (tick>=maxTick){
                         //超界不执行
                         isPlaying=false;
                         this.cancel();
                     }else{
                         //执行操作
 //                        HashMap<String, ArrayList<FillJob>> tickJob = workLoad.get(tick.intValue());
-                        fillExecutor.executeFill(tick.intValue(),workLoad);
+                        executeFill(tick.intValue(),shuffledWorkLoad.get(tick.intValue()));
+
+                        System.out.println("Current Tick Work load"+shuffledWorkLoad.get(tick.intValue()).size());
+                        //debug：展示每tick操作
+                        for (FillJob fill:shuffledWorkLoad.get(tick.intValue())){
+                            System.out.println(fill.toString());
+                        }
 
                     }
-                    System.out.println(workLoad.get(tick.intValue()).size());
-                    //debug：展示每tick操作
-//                    for (String key:workLoad.get(tick.intValue()).keySet()){
-//                        for (FillJob fill:workLoad.get(tick.intValue()).get(key)){
-//                            System.out.println(fill.toString());
-//                        }
-//
-//                    }
+
                 }
             }
         };
@@ -88,15 +91,48 @@ public class AffPlayer {
         return true;
     }
 
+    public HashMap<Integer,ArrayList<FillJob>> shuffleWorkLoad(ArrayList<FillJob> input){
+        HashMap<Integer,ArrayList<FillJob>> results = new HashMap<>();
+        for (FillJob fillJob:input){
+            ArrayList<FillJob> fillJobsInTick;
+            if (results.containsKey(fillJob.frame)){
+                fillJobsInTick = results.get(fillJob.frame);
+            }else{
+                fillJobsInTick = new ArrayList<>();
+            }
+            fillJobsInTick.add(fillJob);
+            results.put(fillJob.frame,fillJobsInTick);
+
+            if (fillJob.frame>maxTick)
+                maxTick=fillJob.frame;
+        }
+        Integer i=0;
+        for (;i<maxTick;i++){
+            if (!results.containsKey(i)){
+                results.put(i,new ArrayList<>());
+            }
+        }
+        return results;
+    }
+
+    public void executeFill(Integer tick, ArrayList<FillJob> fills) {
+        for (FillJob fill : fills) {
+            //三层循环
+            for (int i = fill.x_low; i < fill.x_high; i++) {
+                for (int j = fill.y_low; j < fill.y_high; j++) {
+                    for (int k = fill.z_low; k < fill.z_high; k++) {
+                        dimension.getBlockAt(i,j,k).setType(Material.matchMaterial(fill.material));
+                    }
+                }
+            }
+
+        }
+    }
+
     public AffPlayer(Arcaea4pigot plugin, FileConfiguration config) {
         this.plugin = plugin;
         this.config = config;
-        System.out.println("Available Worlds");
-        for (World world:getServer().getWorlds()){
-            System.out.println(world.getName());
-        }
         this.dimension = getServer().getWorld(config.getString("Render.Position.dimension"));
         this.wait_before_playing = config.getInt("Render.Time.wait_before_playing");
-        this.fillExecutor = new FillExecutor(dimension);
     }
 }

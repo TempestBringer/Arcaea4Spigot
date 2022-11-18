@@ -12,6 +12,7 @@ public class FillJob {
     public Integer z_low;
     public Integer z_high;
     public String material;
+    public String jobName;
 
     public FillJob(String type, Integer priority, Integer frame, Boolean behind_line) {
         this.type = type;
@@ -25,6 +26,7 @@ public class FillJob {
         this.z_low=0;
         this.z_high=0;
         this.material="";
+        this.jobName="";
     }
 
     @Override
@@ -41,6 +43,7 @@ public class FillJob {
                 ", z_low=" + z_low +
                 ", z_high=" + z_high +
                 ", material='" + material + '\'' +
+                ", jobName='" + jobName + '\'' +
                 '}';
     }
 }

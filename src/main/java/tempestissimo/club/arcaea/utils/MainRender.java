@@ -48,7 +48,7 @@ public class MainRender {
     //运行时状态
     public Boolean compiling=false;
     public Boolean compileFinished=false;
-    public ArrayList<HashMap<String, ArrayList<FillJob>>> compileResults;
+    public ArrayList<FillJob> compileResults;
 
 
     /**
@@ -65,7 +65,7 @@ public class MainRender {
         new BukkitRunnable() {
             @Override
             public void run() {
-                ArrayList<HashMap<String, ArrayList<FillJob>>> results = compileSong(songIndex, ratingClass);
+                ArrayList<FillJob> results = compileSong(songIndex, ratingClass);
                 compileResults=results;
                 compiling=false;
                 compileFinished=true;
@@ -89,7 +89,7 @@ public class MainRender {
      * @param songIndex 歌曲id
      * @param ratingClass 难度等级
      */
-    public ArrayList<HashMap<String, ArrayList<FillJob>>> compileSong(Integer songIndex,Integer ratingClass){
+    public ArrayList<FillJob> compileSong(Integer songIndex,Integer ratingClass){
         String affPath=plugin.songScanner.generate_aff_file_path(songIndex,ratingClass);
         Song song = plugin.songScanner.song_list.get(songIndex);
         //读取原始文件
@@ -120,7 +120,7 @@ public class MainRender {
         ArrayList<Scenecontrol> main_scenecontrols = (ArrayList<Scenecontrol>) parsed_main_timing_group.get("scenecontrols");
         ArrayList<Timing> main_timings = (ArrayList<Timing>) parsed_main_timing_group.get("timings");
         ArrayList<Camera> main_cameras = (ArrayList<Camera>) parsed_main_timing_group.get("cameras");
-        ArrayList<HashMap<String, ArrayList<FillJob>>> main_compile = compileTimingGroup(song, main_notes, main_holds, main_arcs, main_scenecontrols, main_timings, main_cameras, "main", "main_");
+        ArrayList<FillJob> main_compile = compileTimingGroup(song, main_notes, main_holds, main_arcs, main_scenecontrols, main_timings, main_cameras, "main", "main_");
         //2.分别渲染副timingGroup
         for (int i = 0; i < parsed_attached_timing_groups.size(); i++) {
             HashMap<String,Object> parsed_attached_timing_group = parsed_attached_timing_groups.get(i);
@@ -131,8 +131,9 @@ public class MainRender {
             ArrayList<Timing> attached_timings = (ArrayList<Timing>) parsed_attached_timing_group.get("timings");
             ArrayList<Camera> attached_cameras = (ArrayList<Camera>) parsed_attached_timing_group.get("cameras");
             String timing_group_arg = timing_groups_args.get(i);
-            ArrayList<HashMap<String, ArrayList<FillJob>>> attached_compile = compileTimingGroup(song, attached_notes, attached_holds, attached_arcs, attached_scenecontrols, attached_timings, attached_cameras, timing_group_arg,String.valueOf(i)+"_");
-            main_compile=mergeCompileResults(main_compile, attached_compile);
+            ArrayList<FillJob> attached_compile = compileTimingGroup(song, attached_notes, attached_holds, attached_arcs, attached_scenecontrols, attached_timings, attached_cameras, timing_group_arg,String.valueOf(i)+"_");
+            main_compile.addAll(attached_compile);
+//            main_compile=mergeCompileResults(main_compile, attached_compile);
         }
         return main_compile;
     }
@@ -148,32 +149,13 @@ public class MainRender {
      * @param timingGroupArg
      * @return
      */
-    public ArrayList<HashMap<String, ArrayList<FillJob>>> compileTimingGroup(Song song, ArrayList<Note> notes, ArrayList<Hold> holds, ArrayList<Arc> arcs, ArrayList<Scenecontrol> sceneControls, ArrayList<Timing> timings, ArrayList<Camera> main_cameras, String timingGroupArg, String timingGroupPrefix){
-        ArrayList<HashMap<String, ArrayList<FillJob>>> results = new ArrayList<>();
+    public ArrayList<FillJob> compileTimingGroup(Song song, ArrayList<Note> notes, ArrayList<Hold> holds, ArrayList<Arc> arcs, ArrayList<Scenecontrol> sceneControls, ArrayList<Timing> timings, ArrayList<Camera> main_cameras, String timingGroupArg, String timingGroupPrefix){
+        ArrayList<FillJob> results = new ArrayList<>();
         //编译Notes，对每一个Note执行
         for (int i=0;i<notes.size();i++){
             Note note = notes.get(i);
-            HashMap<Integer,ArrayList<FillJob>> compiledNote = compileNote(song,note,timings);
-            // Integer型的Key是刻，Value是在当前刻需要执行的任务
-            for (Integer tick: compiledNote.keySet()){
-                ArrayList<FillJob> fillJobsInTick = compiledNote.get(tick);
-                if (tick<0) {
-                    //取消执行
-                }else{
-                    while(results.size()<=tick)
-                        results.add(new HashMap<>());
-                    HashMap<String, ArrayList<FillJob>> tempResults;
-                    if (!results.get(tick).containsKey(timingGroupPrefix+"note_"+i)){
-                        //物件的在该刻尚无渲染渲染
-                        tempResults = new HashMap<>();
-                    }else{
-                        //该刻存在渲染
-                        tempResults = results.get(tick);
-                    }
-                    tempResults.put(timingGroupPrefix+"note_"+i, fillJobsInTick);
-                    results.set(tick,tempResults);
-                }
-            }
+            ArrayList<FillJob> compiledNote = compileNote(song,note,timings,timingGroupPrefix+"note_"+i);
+            results.addAll(compiledNote);
         }
         System.out.println("finished compiling timing group : "+timingGroupPrefix);
         return results;
@@ -181,33 +163,38 @@ public class MainRender {
 
 
     /**
-     * 编译：一个Note，返回的HashMap以渲染所在刻为key，描述一个Note在当前刻的所有渲染任务。
+     * 编译：一个Note，返回一个Note在当前刻的所有渲染任务。
      * @param song
      * @param note
      * @param timings
      * @return
      */
-    public HashMap<Integer,ArrayList<FillJob>> compileNote(Song song, Note note, ArrayList<Timing> timings){
-        HashMap<Integer,ArrayList<FillJob>> results=new HashMap<>();
+    public ArrayList<FillJob> compileNote(Song song, Note note, ArrayList<Timing> timings, String jobName){
+        ArrayList<FillJob> results=new ArrayList<>();
         ArrayList<Infer> x_s = position_infer(song, timings, note.t);
         for (Infer infer:x_s){
             Integer frame =infer.frame;
             Double x = infer.position;
-            if (!results.containsKey(frame))
-                results.put(frame,new ArrayList<FillJob>());
-            if (!results.containsKey(frame+1))
-                results.put(frame+1,new ArrayList<FillJob>());
             FillJob tempFill = new FillJob("note",0,frame,false);
             tempFill.y_low = ground_y.intValue();
-            tempFill.y_high = ground_y.intValue();
+            tempFill.y_high = ground_y.intValue()+1;
             tempFill.x_low = x.intValue();
-            tempFill.x_high = x.intValue();
+            tempFill.x_high = x.intValue()+1;
             tempFill.z_low = getGroundTrackZ(note.lane,"left").intValue();
-            tempFill.z_high = getGroundTrackZ(note.lane,"right").intValue();
+            tempFill.z_high = getGroundTrackZ(note.lane,"right").intValue()+1;
             tempFill.material = note_material;
-            results.get(frame).add(tempFill);
-            tempFill.material = air_material;
-            results.get(frame+1).add(tempFill);
+            tempFill.jobName = jobName;
+            results.add(tempFill);
+            FillJob airFill = new FillJob("air",0,frame+1,false);
+            airFill.y_low = ground_y.intValue();
+            airFill.y_high = ground_y.intValue()+1;
+            airFill.x_low = x.intValue();
+            airFill.x_high = x.intValue()+1;
+            airFill.z_low = getGroundTrackZ(note.lane,"left").intValue();
+            airFill.z_high = getGroundTrackZ(note.lane,"right").intValue()+1;
+            airFill.material = air_material;
+            airFill.jobName = jobName;
+            results.add(airFill);
         }
         return results;
     }
