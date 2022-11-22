@@ -10,6 +10,7 @@ import tempestissimo.club.arcaea.utils.entities.note_related.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class MainRender {
     public Arcaea4pigot plugin;
@@ -27,6 +28,7 @@ public class MainRender {
     public Double arc_raise_ratio;
     public Double default_speed_per_second;
     public Double wait_after_last_note;
+    public Double zero_time_arc_play_dense;
     //材料配置预读取
     public String air_material;
     public String note_material;
@@ -185,7 +187,7 @@ public class MainRender {
             tempFill.material = note_material;
             tempFill.jobName = jobName;
             results.add(tempFill);
-            FillJob airFill = new FillJob("air",0,frame+1,false);
+            FillJob airFill = new FillJob("air",10,frame+1,false);
             airFill.y_low = ground_y.intValue();
             airFill.y_high = ground_y.intValue();
             airFill.x_low = x.intValue();
@@ -199,13 +201,92 @@ public class MainRender {
         return results;
     }
 
-    public HashMap<Integer,ArrayList<FillJob>> compileHold(Song song, Hold hold, ArrayList<Timing> timings){
-        HashMap<Integer,ArrayList<FillJob>> results=new HashMap<>();
+    /**
+     * 渲染：Arc，分天键和arc本体渲染
+     * @param song
+     * @param arc
+     * @param timings
+     * @param jobName
+     * @return
+     */
+    public ArrayList<FillJob> compileArc(Song song, Arc arc, ArrayList<Timing> timings, String jobName){
+        ArrayList<FillJob> results = new ArrayList<>();
+        //渲染Arctap
+        List<Integer> arctaps = arc.arctaplist;
+        for (int i=0;i<arctaps.size();i++){
+            Integer arctap = arctaps.get(i);
+            ArrayList<Double[]> pois = arc.getPosition(arctap, this.zero_time_arc_play_dense);
+            for (Double[] poi:pois){
+                ArrayList<FillJob> arcTapResult = this.compileArcTap(song, timings, poi[0], poi[1], arctap, jobName + "arctap_" + i + "_");
+                results.addAll(arcTapResult);
+            }
+        }
+        //渲染Arc本体
         return results;
     }
 
-    public HashMap<Integer,ArrayList<FillJob>> compileArc(Song song, Arc arc, ArrayList<Timing> timings){
-        HashMap<Integer,ArrayList<FillJob>> results=new HashMap<>();
+    /**
+     * 编译一个ArcTap
+     * @param song
+     * @param timings
+     * @param x
+     * @param y
+     * @param arcTapTime
+     * @param jobName
+     * @return
+     */
+    public ArrayList<FillJob> compileArcTap(Song song, ArrayList<Timing> timings, Double x,Double y,Integer arcTapTime,String jobName) {
+        ArrayList<FillJob> results = new ArrayList<>();
+        ArrayList<Infer> xS = position_infer(song, timings, arcTapTime);
+        for (Infer infer:xS){
+            Integer frame =infer.frame;
+            Double startX = infer.position;
+            Double startY = getSkyTrackY(y);
+            Double startZ = getSkyTrackZ(x)-(ground_interval-1)/2;
+            Double endZ = getSkyTrackZ(x)+(ground_interval-1)/2;
+            FillJob tempFill = new FillJob("arctap",0,frame,false);
+            tempFill.x_low= startX.intValue();
+            tempFill.x_high= startX.intValue();
+            tempFill.y_low= startY.intValue();
+            tempFill.y_high= startY.intValue();
+            tempFill.z_low= startZ.intValue();
+            tempFill.z_high= endZ.intValue();
+            tempFill.material = arctap_material;
+            tempFill.jobName=jobName;
+            results.add(tempFill);
+            tempFill.type="air";
+            tempFill.priority=10;
+            tempFill.frame=frame+1;
+            tempFill.material = air_material;
+            results.add(tempFill);
+        }
+        return results;
+    }
+
+    /**
+     * 编译：渲染一格宽的Arc横截面
+     * @param song
+     * @param timings
+     * @param x
+     * @param y
+     * @param color
+     * @param arcBodyTime
+     * @param jobName
+     * @return
+     */
+    public ArrayList<FillJob> compileArcBody(Song song, ArrayList<Timing> timings, Double x,Double y,Integer color,Integer arcBodyTime,String jobName) {
+        ArrayList<FillJob> results = new ArrayList<>();
+        ArrayList<Infer> xS = position_infer(song, timings, arcBodyTime);
+        for (int i = 0; i < xS.size(); i++) {
+            Infer tempInfer = xS.get(i);
+            Integer curFrame=tempInfer.frame;
+            Double startX=tempInfer.position;
+            Double endX=tempInfer.position;
+            Double startY=getSkyTrackY(y);
+            Double endY=getSkyTrackY(y);
+            Double startZ=getSkyTrackZ(x);
+            Double endZ=getSkyTrackZ(x);
+        }
         return results;
     }
 
@@ -401,6 +482,7 @@ public class MainRender {
         this.arc_raise_ratio=config.getDouble("Render.Position.arc_raise_ratio");
         this.default_speed_per_second=config.getDouble("Render.Position.default_speed_per_second");
         this.wait_after_last_note=config.getDouble("Render.Position.ground_x");
+        this.zero_time_arc_play_dense=config.getDouble("Render.Time.zero_time_arc_play_dense");
         //材料配置预读取
         this.air_material=config.getString("Render.Material.air_material");
         this.note_material=config.getString("Render.Material.note_material");

@@ -149,8 +149,11 @@ public class AffReader {
                     flag = true;
                 }else
                     flag = false;
-                arcs.add(new Arc(Integer.parseInt(arc_segments[0]),Integer.parseInt(arc_segments[1]),Float.parseFloat(arc_segments[2]),
-                        Float.parseFloat(arc_segments[3]),arc_segments[4],Float.parseFloat(arc_segments[5]),Float.parseFloat(arc_segments[6]),
+                //只要有天键，即强制转换arc为黑线
+                if (arctaps.size()>0)
+                    flag = true;
+                arcs.add(new Arc(Integer.parseInt(arc_segments[0]),Integer.parseInt(arc_segments[1]),Double.parseDouble(arc_segments[2]),
+                        Double.parseDouble(arc_segments[3]),arc_segments[4],Double.parseDouble(arc_segments[5]),Double.parseDouble(arc_segments[6]),
                         Integer.parseInt(arc_segments[7]),arc_segments[8],flag,arctaps));
             }else if (line.startsWith("scenecontrol(")){
                 String[] segments = line.replace("scenecontrol(","").replace(");","").split(",");

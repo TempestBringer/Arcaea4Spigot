@@ -24,4 +24,9 @@ public class HitCalculator {
         return results;
     }
 
+    public HitCalculator(Arcaea4pigot plugin,FileConfiguration config){
+        this.config=config;
+        this.plugin=plugin;
+    }
+
 }

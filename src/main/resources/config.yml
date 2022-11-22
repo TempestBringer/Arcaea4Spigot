@@ -49,8 +49,9 @@ Render:
     wait_after_last_note: 100
     # wait before play (tick)
     wait_before_playing: 100
-
-  # don't change this on spigot server and its branches unless you want to speed up or slow down the whole render.
+    # block dense of arc which starts as it ends
+    zero_time_arc_play_dense: 20
+  # don't change this tps on spigot server and its branches unless you want to speed up or slow down the whole render.
   # change this will cause async music and vision without Fabric's Carpet Mod to change TPS.
   tps: 20.0
   # normal pi, change this will cause weird arc
