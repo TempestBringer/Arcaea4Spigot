@@ -286,6 +286,18 @@ public class MainRender {
             Double endY=getSkyTrackY(y);
             Double startZ=getSkyTrackZ(x);
             Double endZ=getSkyTrackZ(x);
+            FillJob centreFill = new FillJob("arc",4,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),blue_arc_centre_material,jobName);
+            if (color==-1){//颜色-1，为黑线
+
+            }if (color==0){//颜色0，蓝色蛇
+                results.add(centreFill);
+            }else if (color==1){//颜色1，红色蛇
+                centreFill.material=red_arc_centre_material;
+                results.add(centreFill);
+            }else if (color==2){//颜色2，绿色蛇
+                centreFill.material=green_arc_centre_material;
+                results.add(centreFill);
+            }
         }
         return results;
     }

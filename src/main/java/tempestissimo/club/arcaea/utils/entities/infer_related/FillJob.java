@@ -29,6 +29,21 @@ public class FillJob {
         this.jobName="";
     }
 
+    public FillJob(String type, Integer priority, Integer frame, Boolean behind_line, Integer x_low, Integer x_high, Integer y_low, Integer y_high, Integer z_low, Integer z_high, String material, String jobName) {
+        this.type = type;
+        this.priority = priority;
+        this.frame = frame;
+        this.behind_line = behind_line;
+        this.x_low = x_low;
+        this.x_high = x_high;
+        this.y_low = y_low;
+        this.y_high = y_high;
+        this.z_low = z_low;
+        this.z_high = z_high;
+        this.material = material;
+        this.jobName = jobName;
+    }
+
     @Override
     public String toString() {
         return "FillJob{" +
