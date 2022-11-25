@@ -47,6 +47,16 @@ public class MainRender {
     public String green_arc_material;
     public String green_arc_centre_material;
     public String green_arc_support_material;
+    public String track_surface_material;
+    public String track_line_material;
+    public String extend_track_surface_material;
+    public String extend_track_line_material;
+    public Boolean enable_black_line;
+    public Double black_line_particle_dense;
+    public Boolean enable_double_note_line;
+    public Double double_note_line_particle_dense;
+
+
     //运行时状态
     public Boolean compiling=false;
     public Boolean compileFinished=false;
@@ -156,8 +166,14 @@ public class MainRender {
         //编译Notes，对每一个Note执行
         for (int i=0;i<notes.size();i++){
             Note note = notes.get(i);
-            ArrayList<FillJob> compiledNote = compileNote(song,note,timings,timingGroupPrefix+"note_"+i);
+            ArrayList<FillJob> compiledNote = compileNote(song,note,timings,timingGroupPrefix+"note_"+i+"_");
             results.addAll(compiledNote);
+        }
+        //编译Arcs，对每一个Arc执行
+        for (int i=0;i<arcs.size();i++){
+            Arc arc = arcs.get(i);
+            ArrayList<FillJob> compiledArc = compileArc(song,arc,timings,timingGroupPrefix+"arc_"+i+"_");
+            results.addAll(compiledArc);
         }
         System.out.println("finished compiling timing group : "+timingGroupPrefix);
         return results;
@@ -222,6 +238,23 @@ public class MainRender {
             }
         }
         //渲染Arc本体
+        Double frameTime=1000/tps;
+        //是黑线
+        if (arc.skylineBoolean){
+            if (enable_black_line){
+                Double start_frame_time = arc.t1-arc.t1%frameTime;
+//                arc.getPosition(, zero_time_arc_play_dense);
+                Double cueTime=start_frame_time;
+                while(cueTime<arc.t2){
+                    ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
+                    for (Double[] position:positions){
+                        ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), jobName);
+                        results.addAll(fillJobs);
+                    }
+
+                }
+            }
+        }
         return results;
     }
 
@@ -291,12 +324,87 @@ public class MainRender {
 
             }if (color==0){//颜色0，蓝色蛇
                 results.add(centreFill);
+                FillJob centreAir=nextFrameAir(centreFill);
+                results.add(centreAir);
+                //蓝蛇描边
+                if (!blue_arc_centre_only){
+                    FillJob leftFill = centreFill;
+                    leftFill.material = blue_arc_material;
+                    leftFill.priority-=1;
+                    leftFill.z_low-=1;
+                    leftFill.z_high-=1;
+                    results.add(leftFill);
+                    results.add(nextFrameAir((leftFill)));
+                    FillJob rightFill = centreFill;
+                    rightFill.material = blue_arc_material;
+                    rightFill.priority-=1;
+                    rightFill.z_low+=1;
+                    rightFill.z_high+=1;
+                    results.add(rightFill);
+                    results.add(nextFrameAir((rightFill)));
+
+                    FillJob upFill = centreFill;
+                    upFill.material = blue_arc_material;
+                    upFill.priority-=1;
+                    upFill.y_low+=1;
+                    upFill.y_high+=1;
+                    results.add(upFill);
+                    results.add(nextFrameAir((upFill)));
+                }
             }else if (color==1){//颜色1，红色蛇
                 centreFill.material=red_arc_centre_material;
                 results.add(centreFill);
+                //红蛇描边
+                if (!red_arc_centre_only){
+                    FillJob leftFill = centreFill;
+                    leftFill.material = red_arc_material;
+                    leftFill.priority-=1;
+                    leftFill.z_low-=1;
+                    leftFill.z_high-=1;
+                    results.add(leftFill);
+                    results.add(nextFrameAir((leftFill)));
+                    FillJob rightFill = centreFill;
+                    rightFill.material = red_arc_material;
+                    rightFill.priority-=1;
+                    rightFill.z_low+=1;
+                    rightFill.z_high+=1;
+                    results.add(rightFill);
+                    results.add(nextFrameAir((rightFill)));
+                    FillJob upFill = centreFill;
+                    upFill.material = red_arc_material;
+                    upFill.priority-=1;
+                    upFill.y_low+=1;
+                    upFill.y_high+=1;
+                    results.add(upFill);
+                    results.add(nextFrameAir((upFill)));
+                }
             }else if (color==2){//颜色2，绿色蛇
                 centreFill.material=green_arc_centre_material;
                 results.add(centreFill);
+                //绿蛇描边
+                if (!green_arc_centre_only){
+                    FillJob leftFill = centreFill;
+                    leftFill.material = green_arc_material;
+                    leftFill.priority-=1;
+                    leftFill.z_low-=1;
+                    leftFill.z_high-=1;
+                    results.add(leftFill);
+                    results.add(nextFrameAir((leftFill)));
+                    FillJob rightFill = centreFill;
+                    rightFill.material = green_arc_material;
+                    rightFill.priority-=1;
+                    rightFill.z_low+=1;
+                    rightFill.z_high+=1;
+                    results.add(rightFill);
+                    results.add(nextFrameAir((rightFill)));
+                    FillJob upFill = centreFill;
+                    upFill.material = green_arc_material;
+                    upFill.priority-=1;
+                    upFill.y_low+=1;
+                    upFill.y_high+=1;
+                    results.add(upFill);
+                    results.add(nextFrameAir((upFill)));
+                }
             }
         }
         return results;
@@ -404,8 +512,6 @@ public class MainRender {
             cur_time-=frame_time;
         }
         return x_s;
-
-
     }
 
     /**
@@ -437,6 +543,19 @@ public class MainRender {
             }
         }
         return hide_flag;
+    }
+
+    /**
+     * 获得一个FillJob在下一帧需要填充为的空气
+     * @param source
+     * @return
+     */
+    public FillJob nextFrameAir(FillJob source){
+        FillJob result = source;
+        result.frame+=1;
+        result.material=air_material;
+        result.priority=10;
+        return result;
     }
 
 
@@ -493,9 +612,15 @@ public class MainRender {
         this.arc_raise_block=config.getDouble("Render.Position.arc_raise_block");
         this.arc_raise_ratio=config.getDouble("Render.Position.arc_raise_ratio");
         this.default_speed_per_second=config.getDouble("Render.Position.default_speed_per_second");
+        //Render.Time
         this.wait_after_last_note=config.getDouble("Render.Position.ground_x");
         this.zero_time_arc_play_dense=config.getDouble("Render.Time.zero_time_arc_play_dense");
-        //材料配置预读取
+        //Render.Particle 粒子配置预读取
+        this.enable_black_line=config.getBoolean("Render.Particle.enable_black_line");
+        this.black_line_particle_dense=config.getDouble("Render.Particle.black_line_particle_dense");
+        this.enable_double_note_line=config.getBoolean("Render.Particle.enable_double_note_line");
+        this.double_note_line_particle_dense=config.getDouble("Render.Particle.double_note_line_particle_dense");
+        //Render.Material 材料配置预读取
         this.air_material=config.getString("Render.Material.air_material");
         this.note_material=config.getString("Render.Material.note_material");
         this.arctap_material=config.getString("Render.Material.arctap_material");
@@ -513,5 +638,9 @@ public class MainRender {
         this.green_arc_material=config.getString("Render.Material.green_arc_material");
         this.green_arc_centre_material=config.getString("Render.Material.green_arc_centre_material");
         this.green_arc_support_material=config.getString("Render.Material.green_arc_support_material");
+        this.track_surface_material=config.getString("Render.Material.track_surface_material");
+        this.track_line_material=config.getString("Render.Material.track_line_material");
+        this.extend_track_surface_material=config.getString("Render.Material.extend_track_surface_material");
+        this.extend_track_line_material=config.getString("Render.Material.extend_track_line_material");
     }
 }

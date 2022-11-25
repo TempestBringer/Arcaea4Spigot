@@ -25,8 +25,10 @@ Render:
     green_arc_centre_material: emerald_block
     green_arc_support_material: lime_stained_glass_pane
     # ground
-    ground_surface_material:
-    ground_line_material:
+    track_surface_material: white_concrete
+    track_line_material: gray_concrete
+    extend_track_surface_material: white_stained_glass
+    extend_track_line_material: light_gray_stained_glass
   Position:
     # execute in which dimension
     dimension: void
