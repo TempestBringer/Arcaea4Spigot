@@ -174,8 +174,9 @@ public class MainRender {
             Arc arc = arcs.get(i);
             ArrayList<FillJob> compiledArc = compileArc(song,arc,timings,timingGroupPrefix+"arc_"+i+"_");
             results.addAll(compiledArc);
+//            System.out.println("Cur Arc Has "+compiledArc.size()+" FillJob");
         }
-        System.out.println("finished compiling timing group : "+timingGroupPrefix);
+//        System.out.println("finished compiling timing group : "+timingGroupPrefix);
         return results;
     }
 
@@ -242,17 +243,20 @@ public class MainRender {
         //是黑线
         if (arc.skylineBoolean){
             if (enable_black_line){
-                Double start_frame_time = arc.t1-arc.t1%frameTime;
-//                arc.getPosition(, zero_time_arc_play_dense);
-                Double cueTime=start_frame_time;
-                while(cueTime<arc.t2){
-                    ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
-                    for (Double[] position:positions){
-                        ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), jobName);
-                        results.addAll(fillJobs);
-                    }
 
+            }
+        }else{
+            //是实体蛇
+            Double start_frame_time = arc.t1-arc.t1%frameTime;
+//                arc.getPosition(, zero_time_arc_play_dense);
+            Double cueTime=start_frame_time;
+            while(cueTime<arc.t2){
+                ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
+                for (Double[] position:positions){
+                    ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), jobName);
+                    results.addAll(fillJobs);
                 }
+                cueTime+=frameTime*tps/default_speed_per_second;
             }
         }
         return results;
@@ -287,11 +291,16 @@ public class MainRender {
             tempFill.material = arctap_material;
             tempFill.jobName=jobName;
             results.add(tempFill);
-            tempFill.type="air";
-            tempFill.priority=10;
-            tempFill.frame=frame+1;
-            tempFill.material = air_material;
-            results.add(tempFill);
+            FillJob airFill= new FillJob("air",10,frame+1,false);
+            airFill.x_low= startX.intValue();
+            airFill.x_high= startX.intValue();
+            airFill.y_low= startY.intValue();
+            airFill.y_high= startY.intValue();
+            airFill.z_low= startZ.intValue();
+            airFill.z_high= endZ.intValue();
+            airFill.material = air_material;
+            airFill.jobName=jobName;
+            results.add(airFill);
         }
         return results;
     }
@@ -319,91 +328,67 @@ public class MainRender {
             Double endY=getSkyTrackY(y);
             Double startZ=getSkyTrackZ(x);
             Double endZ=getSkyTrackZ(x);
-            FillJob centreFill = new FillJob("arc",4,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),blue_arc_centre_material,jobName);
             if (color==-1){//颜色-1，为黑线
 
             }if (color==0){//颜色0，蓝色蛇
+                FillJob centreFill = new FillJob("arc",4,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),blue_arc_centre_material,jobName);
                 results.add(centreFill);
-                FillJob centreAir=nextFrameAir(centreFill);
+                FillJob centreAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),air_material,jobName);
                 results.add(centreAir);
                 //蓝蛇描边
                 if (!blue_arc_centre_only){
-                    FillJob leftFill = centreFill;
-                    leftFill.material = blue_arc_material;
-                    leftFill.priority-=1;
-                    leftFill.z_low-=1;
-                    leftFill.z_high-=1;
+                    FillJob leftFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()-1,endZ.intValue()-1,blue_arc_material,jobName);
+                    FillJob leftAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()-1,endZ.intValue()-1,air_material,jobName);
                     results.add(leftFill);
-                    results.add(nextFrameAir((leftFill)));
-                    FillJob rightFill = centreFill;
-                    rightFill.material = blue_arc_material;
-                    rightFill.priority-=1;
-                    rightFill.z_low+=1;
-                    rightFill.z_high+=1;
+                    results.add(leftAir);
+                    FillJob rightFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()+1,endZ.intValue()+1,blue_arc_material,jobName);
+                    FillJob rightAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()+1,endZ.intValue()+1,air_material,jobName);
                     results.add(rightFill);
-                    results.add(nextFrameAir((rightFill)));
-
-                    FillJob upFill = centreFill;
-                    upFill.material = blue_arc_material;
-                    upFill.priority-=1;
-                    upFill.y_low+=1;
-                    upFill.y_high+=1;
+                    results.add(rightAir);
+                    FillJob upFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue()+1,endY.intValue()+1,startZ.intValue(),endZ.intValue(),blue_arc_material,jobName);
+                    FillJob upAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue()+1,endY.intValue()+1,startZ.intValue(),endZ.intValue(),air_material,jobName);
                     results.add(upFill);
-                    results.add(nextFrameAir((upFill)));
+                    results.add(upAir);
                 }
             }else if (color==1){//颜色1，红色蛇
-                centreFill.material=red_arc_centre_material;
+                FillJob centreFill = new FillJob("arc",4,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),red_arc_centre_material,jobName);
                 results.add(centreFill);
-                //红蛇描边
+                FillJob centreAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),air_material,jobName);
+                results.add(centreAir);
+                //蓝蛇描边
                 if (!red_arc_centre_only){
-                    FillJob leftFill = centreFill;
-                    leftFill.material = red_arc_material;
-                    leftFill.priority-=1;
-                    leftFill.z_low-=1;
-                    leftFill.z_high-=1;
+                    FillJob leftFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()-1,endZ.intValue()-1,red_arc_material,jobName);
+                    FillJob leftAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()-1,endZ.intValue()-1,air_material,jobName);
                     results.add(leftFill);
-                    results.add(nextFrameAir((leftFill)));
-                    FillJob rightFill = centreFill;
-                    rightFill.material = red_arc_material;
-                    rightFill.priority-=1;
-                    rightFill.z_low+=1;
-                    rightFill.z_high+=1;
+                    results.add(leftAir);
+                    FillJob rightFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()+1,endZ.intValue()+1,red_arc_material,jobName);
+                    FillJob rightAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()+1,endZ.intValue()+1,air_material,jobName);
                     results.add(rightFill);
-                    results.add(nextFrameAir((rightFill)));
-                    FillJob upFill = centreFill;
-                    upFill.material = red_arc_material;
-                    upFill.priority-=1;
-                    upFill.y_low+=1;
-                    upFill.y_high+=1;
+                    results.add(rightAir);
+                    FillJob upFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue()+1,endY.intValue()+1,startZ.intValue(),endZ.intValue(),red_arc_material,jobName);
+                    FillJob upAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue()+1,endY.intValue()+1,startZ.intValue(),endZ.intValue(),air_material,jobName);
                     results.add(upFill);
-                    results.add(nextFrameAir((upFill)));
+                    results.add(upAir);
                 }
             }else if (color==2){//颜色2，绿色蛇
-                centreFill.material=green_arc_centre_material;
+                FillJob centreFill = new FillJob("arc",4,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),green_arc_centre_material,jobName);
                 results.add(centreFill);
-                //绿蛇描边
+                FillJob centreAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),air_material,jobName);
+                results.add(centreAir);
+                //蓝蛇描边
                 if (!green_arc_centre_only){
-                    FillJob leftFill = centreFill;
-                    leftFill.material = green_arc_material;
-                    leftFill.priority-=1;
-                    leftFill.z_low-=1;
-                    leftFill.z_high-=1;
+                    FillJob leftFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()-1,endZ.intValue()-1,green_arc_material,jobName);
+                    FillJob leftAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()-1,endZ.intValue()-1,air_material,jobName);
                     results.add(leftFill);
-                    results.add(nextFrameAir((leftFill)));
-                    FillJob rightFill = centreFill;
-                    rightFill.material = green_arc_material;
-                    rightFill.priority-=1;
-                    rightFill.z_low+=1;
-                    rightFill.z_high+=1;
+                    results.add(leftAir);
+                    FillJob rightFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()+1,endZ.intValue()+1,green_arc_material,jobName);
+                    FillJob rightAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue()+1,endZ.intValue()+1,air_material,jobName);
                     results.add(rightFill);
-                    results.add(nextFrameAir((rightFill)));
-                    FillJob upFill = centreFill;
-                    upFill.material = green_arc_material;
-                    upFill.priority-=1;
-                    upFill.y_low+=1;
-                    upFill.y_high+=1;
+                    results.add(rightAir);
+                    FillJob upFill = new FillJob("arc",5,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue()+1,endY.intValue()+1,startZ.intValue(),endZ.intValue(),green_arc_material,jobName);
+                    FillJob upAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue()+1,endY.intValue()+1,startZ.intValue(),endZ.intValue(),air_material,jobName);
                     results.add(upFill);
-                    results.add(nextFrameAir((upFill)));
+                    results.add(upAir);
                 }
             }
         }
@@ -464,7 +449,7 @@ public class MainRender {
                 break;
         }
         //debug
-        System.out.println("Forwarding to pointer "+(timings_pointer-1));
+//        System.out.println("Forwarding to pointer "+(timings_pointer-1));
 
         timings_pointer-=1;
         //当前帧的毫秒。帧对齐，这一帧内会撞判定线
@@ -552,6 +537,7 @@ public class MainRender {
      */
     public FillJob nextFrameAir(FillJob source){
         FillJob result = source;
+        result.type="air";
         result.frame+=1;
         result.material=air_material;
         result.priority=10;
@@ -570,29 +556,6 @@ public class MainRender {
 
         return null;
     }
-
-    /**
-     * 合并不同TimingGroup的编译结果
-     * @param source
-     * @param add
-     * @return
-     */
-    public ArrayList<HashMap<String, ArrayList<FillJob>>> mergeCompileResults(ArrayList<HashMap<String, ArrayList<FillJob>>> source, ArrayList<HashMap<String, ArrayList<FillJob>>> add){
-        ArrayList<HashMap<String, ArrayList<FillJob>>> results = source;
-        for (int i = 0; i < add.size(); i++) {
-            HashMap<String, ArrayList<FillJob>> addTemp = add.get(i);
-            while(results.size()<=i)
-                results.add(new HashMap<>());
-            HashMap<String, ArrayList<FillJob>> resultsTemp = results.get(i);
-            for (String key: addTemp.keySet()){
-                resultsTemp.put(key, addTemp.get(key));
-            }
-            results.set(i,resultsTemp);
-        }
-        return results;
-    }
-
-
 
     public MainRender(Arcaea4pigot plugin, FileConfiguration config){
         this.config=config;

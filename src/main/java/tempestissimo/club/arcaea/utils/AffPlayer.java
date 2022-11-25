@@ -77,9 +77,11 @@ public class AffPlayer {
                         executeFill(tick.intValue(),shuffledWorkLoad.get(tick.intValue()));
 
                         //debug：展示每tick操作
-//                        System.out.println("Current Tick Work load"+shuffledWorkLoad.get(tick.intValue()).size());
+//                        System.out.println("Current Tick Work load "+shuffledWorkLoad.get(tick.intValue()).size());
 //                        for (FillJob fill:shuffledWorkLoad.get(tick.intValue())){
-//                            System.out.println(fill.toString());
+//                            if (fill.type.equalsIgnoreCase("arc")) {
+//                                System.out.println(fill.toString());
+//                            }
 //                        }
 
                     }
@@ -118,9 +120,9 @@ public class AffPlayer {
     public void executeFill(Integer tick, ArrayList<FillJob> fills) {
         for (FillJob fill : fills) {
             //三层循环
-            for (int i = fill.x_low; i < fill.x_high; i++) {
-                for (int j = fill.y_low; j < fill.y_high; j++) {
-                    for (int k = fill.z_low; k < fill.z_high; k++) {
+            for (int i = fill.x_low; i <= fill.x_high; i++) {
+                for (int j = fill.y_low; j <= fill.y_high; j++) {
+                    for (int k = fill.z_low; k <= fill.z_high; k++) {
                         dimension.getBlockAt(i,j,k).setType(Material.matchMaterial(fill.material));
                     }
                 }

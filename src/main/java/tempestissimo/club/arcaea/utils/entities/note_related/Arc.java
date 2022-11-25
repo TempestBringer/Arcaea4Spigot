@@ -87,15 +87,15 @@ public class Arc {
         if (curTimeInMs<midTime) {
             //arcSoSo
             double deltaTime= midTime - this.t1;
-            result[0]=this.x1+(midX-this.x1)*Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime);
-            result[1]=this.y1+(midY-this.y1)*(1-Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+            result[0]=this.x1+(midX-this.x1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+            result[1]=this.y1+(midY-this.y1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
             results.add(result);
             return results;
         }else{
             //arcSiSi
             double deltaTime= this.t2 - midTime;
             result[0]=midX+(this.x2-midX)*Math.sin(0.5*pi*(curTimeInMs-midTime)/deltaTime);
-            result[1]=midY+(this.y2-midY)*(1-Math.sin(0.5*pi*(curTimeInMs-midTime)/deltaTime));
+            result[1]=midY+(this.y2-midY)*Math.sin(0.5*pi*(curTimeInMs-midTime)/deltaTime);
             results.add(result);
             return results;
         }
@@ -204,4 +204,6 @@ public class Arc {
         this.skylineBoolean = skylineBoolean;
         this.arctaplist = arctaplist;
     }
+
+
 }
