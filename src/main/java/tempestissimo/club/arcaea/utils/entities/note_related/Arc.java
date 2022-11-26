@@ -124,7 +124,7 @@ public class Arc {
         ArrayList<Double[]> results = new ArrayList<>();
         Double[] result = new Double[2];
         double deltaTime= this.t2 - this.t1;
-        result[0]=this.x1+(this.x2-this.x1)*(1-Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+        result[0]=this.x1+(this.x2-this.x1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
         result[1]=this.y1;
         results.add(result);
         return results;
@@ -155,7 +155,7 @@ public class Arc {
         Double[] result = new Double[2];
         double deltaTime= this.t2 - this.t1;
         result[0]=this.x1+(this.x2-this.x1)*Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime);
-        result[1]=this.y1+(this.y2-this.y1)*(1-Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+        result[1]=this.y1+(this.y2-this.y1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
         results.add(result);
         return results;
     }
@@ -169,7 +169,7 @@ public class Arc {
         ArrayList<Double[]> results = new ArrayList<>();
         Double[] result = new Double[2];
         double deltaTime= this.t2 - this.t1;
-        result[0]=this.x1+(this.x2-this.x1)*(1-Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+        result[0]=this.x1+(this.x2-this.x1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
         result[1]=this.y1+(this.y2-this.y1)*Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime);
         results.add(result);
         return results;
@@ -184,8 +184,8 @@ public class Arc {
         ArrayList<Double[]> results = new ArrayList<>();
         Double[] result = new Double[2];
         double deltaTime= this.t2 - this.t1;
-        result[0]=this.x1+(this.x2-this.x1)*(1-Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
-        result[1]=this.y1+(this.y2-this.y1)*(1-Math.sin(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+        result[0]=this.x1+(this.x2-this.x1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
+        result[1]=this.y1+(this.y2-this.y1)*(1-Math.cos(0.5*pi*(curTimeInMs-this.t1)/deltaTime));
         results.add(result);
         return results;
     }
@@ -204,6 +204,4 @@ public class Arc {
         this.skylineBoolean = skylineBoolean;
         this.arctaplist = arctaplist;
     }
-
-
 }
