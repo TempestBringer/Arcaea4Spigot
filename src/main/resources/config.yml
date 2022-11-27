@@ -38,14 +38,14 @@ Render:
     ground_z: -20.0
     ground_interval: 6.0
     # infer distance: distance in front of/behind input line
-    track_x_upper_limit: 100.0
+    track_x_upper_limit: 64.0
     track_x_lower_limit: -10.0
     # all arc raise height (block)
     arc_raise_block: 1.0
     # the height of sky input / ground_interval
     arc_raise_ratio: 1.0
     # note default moving speed (block) per second
-    default_speed_per_second: 100.0
+    default_speed_per_second: 32.0
   Time:
     # play after last note (tick)
     wait_after_last_note: 100

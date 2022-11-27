@@ -227,7 +227,7 @@ public class MainRender {
     public ArrayList<FillJob> compileHold(Song song, Hold hold, ArrayList<Timing> timings, String jobName){
         ArrayList<FillJob> results = new ArrayList<>();
         ArrayList<Infer> xFront = position_infer(song,timings,hold.t1);
-        ArrayList<Infer> xTail = position_infer(song,timings,hold.t1);
+        ArrayList<Infer> xTail = position_infer(song,timings,hold.t2);
         // 分离frame字段
         Integer xFrontStartFrame = xFront.get(xFront.size() - 1).frame;
         Integer xFrontEndFrame = xFront.get(0).frame;
@@ -245,7 +245,7 @@ public class MainRender {
                 minZ = getGroundTrackZ(hold.lane,"left");
                 maxZ = getGroundTrackZ(hold.lane,"right");
                 midZ = getGroundTrackZ(hold.lane,"mid");
-            }else if(xFrame.frame<=xTailStartFrame){
+            }else if(xFrame.frame<=xTailEndFrame){
                 minX = xFrame.position;
                 maxX = ground_x;
                 for (Infer xTailFrame:xTail){
@@ -275,7 +275,7 @@ public class MainRender {
             Double minZ=0.0;
             Double maxZ=0.0;
             Double midZ=0.0;
-            if (xFrame.frame<xFrontEndFrame){
+            if (xFrame.frame<=xFrontEndFrame){
                 continue;
             }else if (xFrame.frame<=xTailEndFrame){
                 minX=ground_x;
@@ -504,7 +504,7 @@ public class MainRender {
         if (position.equalsIgnoreCase("left")){
             return ground_z+track*ground_interval-(ground_interval/2-1);
         }else if (position.equalsIgnoreCase("right")){
-            return ground_z+track*ground_interval+(ground_interval/2+1);
+            return ground_z+track*ground_interval+(ground_interval/2-1);
         }else if (position.equalsIgnoreCase("mid")){
             return ground_z+track*ground_interval;
         }else{
