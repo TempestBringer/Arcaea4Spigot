@@ -174,7 +174,13 @@ public class MainRender {
             Arc arc = arcs.get(i);
             ArrayList<FillJob> compiledArc = compileArc(song,arc,timings,timingGroupPrefix+"arc_"+i+"_");
             results.addAll(compiledArc);
-//            System.out.println("Cur Arc Has "+compiledArc.size()+" FillJob");
+        }
+        //编译Holds，对每一个Hold执行
+        for (int i = 0; i < holds.size(); i++) {
+            Hold hold = holds.get(i);
+            ArrayList<FillJob> compiledHold = compileHold(song,hold,timings,timingGroupPrefix+"arc_"+i+"_");
+            results.addAll(compiledHold);
+
         }
 //        System.out.println("finished compiling timing group : "+timingGroupPrefix);
         return results;
@@ -218,6 +224,99 @@ public class MainRender {
         return results;
     }
 
+    public ArrayList<FillJob> compileHold(Song song, Hold hold, ArrayList<Timing> timings, String jobName){
+        ArrayList<FillJob> results = new ArrayList<>();
+        ArrayList<Infer> xFront = position_infer(song,timings,hold.t1);
+        ArrayList<Infer> xTail = position_infer(song,timings,hold.t1);
+        // 分离frame字段
+        Integer xFrontStartFrame = xFront.get(xFront.size() - 1).frame;
+        Integer xFrontEndFrame = xFront.get(0).frame;
+        Integer xTailStartFrame = xTail.get(xFront.size() - 1).frame;
+        Integer xTailEndFrame = xTail.get(0).frame;
+        for (Infer xFrame :xFront){
+            Double minX=0.0;
+            Double maxX=0.0;
+            Double minZ=0.0;
+            Double maxZ=0.0;
+            Double midZ=0.0;
+            if (xFrame.frame<xTailStartFrame){
+                minX = xFrame.position;
+                maxX = ground_x+track_x_upper_limit;
+                minZ = getGroundTrackZ(hold.lane,"left");
+                maxZ = getGroundTrackZ(hold.lane,"right");
+                midZ = getGroundTrackZ(hold.lane,"mid");
+            }else if(xFrame.frame<=xTailStartFrame){
+                minX = xFrame.position;
+                maxX = ground_x;
+                for (Infer xTailFrame:xTail){
+                    if (xTailFrame.frame==xFrame.frame){
+                        maxX=xTailFrame.position;
+                        break;
+                    }
+                }
+                minZ = getGroundTrackZ(hold.lane,"left");
+                maxZ = getGroundTrackZ(hold.lane,"right");
+                midZ = getGroundTrackZ(hold.lane,"mid");
+            }else{
+                System.out.println("Unexpected hold");
+            }
+            FillJob cur_side = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),hold_side_material,jobName);
+            FillJob next_side = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),air_material,jobName);
+            FillJob cur_centre = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_side_material,jobName);
+            FillJob next_centre = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),air_material,jobName);
+            results.add(cur_side);
+            results.add(cur_centre);
+            results.add(next_side);
+            results.add(next_centre);
+        }
+        for (Infer xFrame :xTail){
+            Double minX=0.0;
+            Double maxX=0.0;
+            Double minZ=0.0;
+            Double maxZ=0.0;
+            Double midZ=0.0;
+            if (xFrame.frame<xFrontEndFrame){
+                continue;
+            }else if (xFrame.frame<=xTailEndFrame){
+                minX=ground_x;
+                maxX = xFrame.position;
+                minZ = getGroundTrackZ(hold.lane, "left");
+                maxZ = getGroundTrackZ(hold.lane, "right");
+                midZ = getGroundTrackZ(hold.lane, "mid");
+            }else{
+                System.out.println("Unexpected hold");
+            }
+            FillJob cur_side = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),hold_side_material,jobName);
+            FillJob next_side = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),air_material,jobName);
+            FillJob cur_centre = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_side_material,jobName);
+            FillJob next_centre = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),air_material,jobName);
+            results.add(cur_side);
+            results.add(cur_centre);
+            results.add(next_side);
+            results.add(next_centre);
+        }
+        if (xFrontEndFrame<xTailStartFrame){
+            for (int i = xFrontEndFrame; i < xTailStartFrame; i++) {
+                Double minX=ground_x;
+                Double maxX=ground_x+track_x_upper_limit;
+                Double minZ=getGroundTrackZ(hold.lane,"left");
+                Double maxZ=getGroundTrackZ(hold.lane,"right");
+                Double midZ=getGroundTrackZ(hold.lane,"mid");
+                FillJob cur_side = new FillJob("hold",2,i,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),hold_side_material,jobName);
+                FillJob next_side = new FillJob("air",10,i+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),air_material,jobName);
+                FillJob cur_centre = new FillJob("hold",2,i,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_side_material,jobName);
+                FillJob next_centre = new FillJob("air",10,i+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),air_material,jobName);
+                results.add(cur_side);
+                results.add(cur_centre);
+                results.add(next_side);
+                results.add(next_centre);
+            }
+        }
+
+
+        return results;
+    }
+
     /**
      * 渲染：Arc，分天键和arc本体渲染
      * @param song
@@ -242,9 +341,10 @@ public class MainRender {
         Double frameTime=1000/tps;
         //是黑线
         if (arc.skylineBoolean){
-            if (enable_black_line){
-
-            }
+            //黑线不在这里处理
+//            if (enable_black_line){
+//
+//            }
         }else{
             //是实体蛇
             Double start_frame_time = arc.t1-arc.t1%frameTime;

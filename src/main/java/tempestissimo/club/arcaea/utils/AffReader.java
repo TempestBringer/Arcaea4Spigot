@@ -145,7 +145,7 @@ public class AffReader {
                 String arc = line.replace("[","/").split("/")[0];
                 String[] arc_segments = arc.replace("arc(","").replace(")","").split(",");
                 Boolean flag;
-                if (arc_segments[8].equals("true")){
+                if (arc_segments[9].contains("true")){
                     flag = true;
                 }else
                     flag = false;
