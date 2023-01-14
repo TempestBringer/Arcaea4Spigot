@@ -1,8 +1,9 @@
 package tempestissimo.club.arcaea;
 
-import tempestissimo.club.arcaea.command.BasicCommand;
+import tempestissimo.club.arcaea.service.BasicCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import tempestissimo.club.arcaea.service.InfoService;
 import tempestissimo.club.arcaea.utils.AffPlayer;
 import tempestissimo.club.arcaea.utils.AffReader;
 import tempestissimo.club.arcaea.utils.MainRender;
@@ -20,6 +21,9 @@ public final class Arcaea4pigot extends JavaPlugin {
     public static MainRender mainRender;
     public static AffPlayer affPlayer;
 
+    //消息服务
+    public static InfoService info;
+
 
     @Override
     public void onEnable() {
@@ -28,8 +32,12 @@ public final class Arcaea4pigot extends JavaPlugin {
         // 配置文件装载
         this.saveDefaultConfig();
         this.config = this.getConfig();
-        // 命令组件初始化
         pluginSelf=this;
+
+        // 消息服务初始化
+        this.info = new InfoService(this.config);
+        // 命令组件初始化
+
         this.basicCommand =new BasicCommand(pluginSelf);
         getServer().getPluginCommand("arcaea").setExecutor(new BasicCommand(this));
         // 文件交互读取以及初次运行

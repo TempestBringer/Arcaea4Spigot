@@ -1,6 +1,7 @@
 package tempestissimo.club.arcaea.utils;
 
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -10,6 +11,7 @@ import tempestissimo.club.arcaea.utils.entities.Song;
 import tempestissimo.club.arcaea.utils.entities.infer_related.FillJob;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 
 import static org.bukkit.Bukkit.getServer;
@@ -24,10 +26,9 @@ public class AffPlayer {
     public Boolean isPlaying = false;
     public Long startPlayingTime;
     public Song curSong;
-    public ArrayList<FillJob> rawWorkLoad;
+    public HashMap<Integer,ArrayList<FillJob>> rawWorkLoad;
 
     public HashMap<Integer,ArrayList<FillJob>> shuffledWorkLoad;
-    public Integer maxTick=0;//终止条件
     //渲染线程
     public BukkitRunnable affRenderThread;
 
@@ -56,26 +57,26 @@ public class AffPlayer {
      * @return
      */
     public Boolean onReceivePlayConfirmCommand(){
-        startPlayingTime=dimension.getTime()+wait_before_playing;
+        startPlayingTime=dimension.getGameTime()+wait_before_playing+plugin.mainRender.minTick;
         isPlaying=true;
         rawWorkLoad=plugin.mainRender.compileResults;
-        shuffledWorkLoad = shuffleWorkLoad(rawWorkLoad);
+//        shuffledWorkLoad = shuffleWorkLoad(rawWorkLoad);
+        shuffledWorkLoad = rawWorkLoad;
         affRenderThread=new BukkitRunnable(){
             @Override
             public void run() {
-                Long curGameTime=dimension.getTime();
-                if (curGameTime>=startPlayingTime){
-                    Long tick=curGameTime-startPlayingTime;
-
-                    if (tick>maxTick){
+                try {
+                    Integer tick= (int)(dimension.getGameTime()-startPlayingTime);
+                    if (tick>plugin.mainRender.maxTick){
                         //超界不执行
                         isPlaying=false;
                         this.cancel();
+                        plugin.info.broadcastSuccess("play_finished", new ArrayList<>());
                     }else{
                         //执行操作
 //                        HashMap<String, ArrayList<FillJob>> tickJob = workLoad.get(tick.intValue());
-                        executeFill(tick.intValue(),shuffledWorkLoad.get(tick.intValue()));
-
+                        if (shuffledWorkLoad.containsKey(tick))
+                            executeFill(tick.intValue(),shuffledWorkLoad.get(tick));
                         //debug：展示每tick操作
 //                        System.out.println("Current Tick Work load "+shuffledWorkLoad.get(tick.intValue()).size());
 //                        for (FillJob fill:shuffledWorkLoad.get(tick.intValue())){
@@ -85,48 +86,35 @@ public class AffPlayer {
 //                        }
 
                     }
-
+                }catch (Exception e){
+                    isPlaying=false;
+                    this.cancel();
+                    plugin.info.broadcastSuccess("error_occurred_while_playing", new ArrayList<>());
                 }
+
+
             }
         };
         affRenderThread.runTaskTimer(plugin,1,0);
         return true;
     }
 
-    public HashMap<Integer,ArrayList<FillJob>> shuffleWorkLoad(ArrayList<FillJob> input){
-        HashMap<Integer,ArrayList<FillJob>> results = new HashMap<>();
-        for (FillJob fillJob:input){
-            ArrayList<FillJob> fillJobsInTick;
-            if (results.containsKey(fillJob.frame)){
-                fillJobsInTick = results.get(fillJob.frame);
-            }else{
-                fillJobsInTick = new ArrayList<>();
-            }
-            fillJobsInTick.add(fillJob);
-            results.put(fillJob.frame,fillJobsInTick);
-
-            if (fillJob.frame>maxTick)
-                maxTick=fillJob.frame;
-        }
-        Integer i=0;
-        for (;i<maxTick;i++){
-            if (!results.containsKey(i)){
-                results.put(i,new ArrayList<>());
-            }
-        }
-        return results;
-    }
-
     public void executeFill(Integer tick, ArrayList<FillJob> fills) {
         for (FillJob fill : fills) {
-            //三层循环
-            for (int i = fill.x_low; i <= fill.x_high; i++) {
-                for (int j = fill.y_low; j <= fill.y_high; j++) {
-                    for (int k = fill.z_low; k <= fill.z_high; k++) {
-                        dimension.getBlockAt(i,j,k).setType(Material.matchMaterial(fill.material));
+            if (fill.type.equals("blackline")){
+                dimension.spawnParticle(Particle.END_ROD,fill.x_low,fill.y_low,fill.z_low,1,0,0,0,10000,null,true);
+            }else{
+                //三层循环
+//                System.out.println(fill.toString());
+                for (int i = (int)fill.x_low; i <= fill.x_high; i++) {
+                    for (int j = (int)fill.y_low; j <= fill.y_high; j++) {
+                        for (int k = (int)fill.z_low; k <= fill.z_high; k++) {
+                            dimension.getBlockAt(i,j,k).setType(Material.matchMaterial(fill.material));
+                        }
                     }
                 }
             }
+
 
         }
     }

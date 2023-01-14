@@ -45,7 +45,16 @@ Render:
     # the height of sky input / ground_interval
     arc_raise_ratio: 1.0
     # note default moving speed (block) per second
-    default_speed_per_second: 32.0
+    default_speed_per_second: 96.0
+  Particle:
+    # enable black line render or not
+    enable_black_line: true
+    # how many particle in a block
+    black_line_particle_dense: 0.4
+    # enable double-click line render or not
+    enable_double_note_line: true
+    # how many particle in a block
+    double_note_line_particle_dense: 2
   Time:
     # play after last note (tick)
     wait_after_last_note: 100
@@ -56,7 +65,7 @@ Render:
   # don't change this tps on spigot server and its branches unless you want to speed up or slow down the whole render.
   # change this will cause async music and vision without Fabric's Carpet Mod to change TPS.
   tps: 20.0
-  # normal pi, change this will cause weird arc
+  # normal pi, hugely change this may cause weird arc
   pi: 3.1415926
 Display:
   # control list length of "/arcaea songlist".
@@ -68,4 +77,21 @@ File:
   # path of your song folder
   # you'd better not contain space in this path
   execute_path: D:/ProgramData/Datas/arcaea
+Info:
+  # placeholder is <!>
+  song_menu: 歌曲菜单
+  argument_type_error: 参数类型错误
+  argument_num_error: 参数数量错误
+  argument_value_error: 参数数值有误
+  aff_file_not_exist: 要访问的谱面文件不存在
+  compiling_aff: 正在编译谱面文件，10秒内未编译完成即为超时，请运行/reload confirm
+  unable_to_compile: 无法编译，有正在编译的谱面或其他错误
+  no_compile_or_not_finished: 无歌曲被编译或编译未完成
+  before_play_warning: 歌曲编译完毕，使用/arcaea play confirm来游玩！
+  start_play: 启动播放中
+  error_occurred_while_starting_play: 启动播放时出现了内部错误
+  error_occurred_while_playing: 播放过程中出现了内部错误，请更换谱面或者尝试/reload confirm
+  error_occurred_while_compiling: 编译中出现了错误，请更换谱面或者尝试/reload confirm
+  compile_finished: 歌曲编译完毕
+  play_finished: 播放完毕
 Version: 1.0

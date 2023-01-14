@@ -1,16 +1,16 @@
 package tempestissimo.club.arcaea.utils.entities.infer_related;
 
-public class FillJob {
+public class FillJob{
     public String type;             //what kind of note create this job
     public Integer priority;        //priority to obtain a block, lower is more important
     public Integer frame;           //render in how many ticks later
     public Boolean behind_line;     //false = before_input_line, true = behind_input_line
-    public Integer x_low;
-    public Integer x_high;
-    public Integer y_low;
-    public Integer y_high;
-    public Integer z_low;
-    public Integer z_high;
+    public double x_low;
+    public double x_high;
+    public double y_low;
+    public double y_high;
+    public double z_low;
+    public double z_high;
     public String material;
     public String jobName;
 
@@ -34,15 +34,60 @@ public class FillJob {
         this.priority = priority;
         this.frame = frame;
         this.behind_line = behind_line;
-        this.x_low = x_low;
-        this.x_high = x_high;
-        this.y_low = y_low;
-        this.y_high = y_high;
-        this.z_low = z_low;
-        this.z_high = z_high;
+        if(x_low>x_high){
+            this.x_low = x_high;
+            this.x_high = x_low;
+        }else{
+            this.x_low = x_low;
+            this.x_high = x_high;
+        }
+        if(y_low>y_high){
+            this.y_low = y_high;
+            this.y_high = y_low;
+        }else{
+            this.y_low = y_low;
+            this.y_high = y_high;
+        }
+        if(z_low>z_high){
+            this.z_low = z_high;
+            this.z_high = z_low;
+        }else{
+            this.z_low = z_low;
+            this.z_high = z_high;
+        }
         this.material = material;
         this.jobName = jobName;
     }
+
+    public FillJob(String type, int priority, Integer curFrame, boolean behind_line, Double startX, Double startY, Double startZ, String particle, String jobName) {
+        this.type = type;
+        this.priority = priority;
+        this.frame = curFrame;
+        this.behind_line = behind_line;
+        this.x_low = startX;
+        this.x_high = startX;
+        this.y_low = startY;
+        this.y_high = startY;
+        this.z_low = startZ;
+        this.z_high = startZ;
+        this.material = particle;
+        this.jobName = jobName;
+    }
+
+//    public FillJob(String type, Integer priority, Integer frame, Boolean behind_line, double x_low, double x_high, double y_low, double y_high, double z_low, double z_high, String material, String jobName) {
+//        this.type = type;
+//        this.priority = priority;
+//        this.frame = frame;
+//        this.behind_line = behind_line;
+//        this.x_low = x_low;
+//        this.x_high = x_high;
+//        this.y_low = y_low;
+//        this.y_high = y_high;
+//        this.z_low = z_low;
+//        this.z_high = z_high;
+//        this.material = material;
+//        this.jobName = jobName;
+//    }
 
     @Override
     public String toString() {
@@ -61,4 +106,5 @@ public class FillJob {
                 ", jobName='" + jobName + '\'' +
                 '}';
     }
+
 }

@@ -6,11 +6,10 @@ import tempestissimo.club.arcaea.Arcaea4pigot;
 import tempestissimo.club.arcaea.utils.entities.Song;
 import tempestissimo.club.arcaea.utils.entities.infer_related.FillJob;
 import tempestissimo.club.arcaea.utils.entities.infer_related.Infer;
+import tempestissimo.club.arcaea.utils.entities.infer_related.ParticleJob;
 import tempestissimo.club.arcaea.utils.entities.note_related.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class MainRender {
     public Arcaea4pigot plugin;
@@ -60,7 +59,13 @@ public class MainRender {
     //运行时状态
     public Boolean compiling=false;
     public Boolean compileFinished=false;
-    public ArrayList<FillJob> compileResults;
+    public HashMap<Integer,ArrayList<FillJob>> compileResults;
+
+    public Integer minTick;
+    public Integer maxTick;
+
+
+
 
 
     /**
@@ -77,13 +82,80 @@ public class MainRender {
         new BukkitRunnable() {
             @Override
             public void run() {
-                ArrayList<FillJob> results = compileSong(songIndex, ratingClass);
-                compileResults=results;
-                compiling=false;
-                compileFinished=true;
+                try{
+                    ArrayList<FillJob> results = compileSong(songIndex, ratingClass);
+                    compileResults = shuffleCompiledWorkLoad(results);
+                    compiling=false;
+                    compileFinished=true;
+                    this.cancel();
+                    plugin.info.broadcastSuccess("compile_finished",new ArrayList<>());
+                }catch (Exception e){
+                    compiling=false;
+                    compileFinished=false;
+                    this.cancel();
+                    plugin.info.broadcastWarn("error_occurred_while_compiling",new ArrayList<>());
+                }
+
             }
         }.runTaskAsynchronously(plugin);
         return true;
+    }
+
+    /**
+     * 按照帧序号分类编译结果
+     * @param input
+     * @return
+     */
+    private HashMap<Integer,ArrayList<FillJob>> shuffleCompiledWorkLoad(ArrayList<FillJob> input){
+        this.maxTick = 0;
+        this.minTick = 0;
+        HashMap<Integer,ArrayList<FillJob>> results = new HashMap<>();
+        for (FillJob fillJob:input){
+            ArrayList<FillJob> fillJobsInTick;
+            if (results.containsKey(fillJob.frame)){
+                fillJobsInTick = results.get(fillJob.frame);
+            }else{
+                fillJobsInTick = new ArrayList<>();
+            }
+            fillJobsInTick.add(fillJob);
+            results.put(fillJob.frame,fillJobsInTick);
+
+            if (fillJob.frame>maxTick)
+                maxTick=fillJob.frame;
+            if (fillJob.frame<minTick)
+                minTick=fillJob.frame;
+        }
+
+        for (Integer i=0;i<maxTick;i++){
+            if (!results.containsKey(i)){
+                results.put(i,new ArrayList<>());
+            }
+        }
+        for (Integer i=0;i<maxTick;i++){
+            results.get(i).sort(new Comparator<FillJob>() {
+                @Override
+                public int compare(FillJob o1, FillJob o2) {
+                    if (o1 == null && o2 == null) {
+                        return 0;
+                    }
+                    if (o1 == null) {
+                        return -1;
+                    }
+                    if (o2 == null) {
+                        return 1;
+                    }
+
+                    if (o1.priority < o2.priority)
+                        return 1;
+                    else if (o1.priority.equals(o2.priority)) {
+                        return 0;
+                    } else {
+                        return -1;
+                    }
+                }
+            });
+        }
+        return results;
     }
 
     public Boolean playEntry(){
@@ -166,22 +238,25 @@ public class MainRender {
         //编译Notes，对每一个Note执行
         for (int i=0;i<notes.size();i++){
             Note note = notes.get(i);
-            ArrayList<FillJob> compiledNote = compileNote(song,note,timings,timingGroupPrefix+"note_"+i+"_");
+            ArrayList<FillJob> compiledNote = compileNote(song,note,timings,sceneControls,timingGroupPrefix+"note_"+i+"_");
             results.addAll(compiledNote);
         }
-        //编译Arcs，对每一个Arc执行
+        //编译非黑线Arcs，对每一个Arc执行
         for (int i=0;i<arcs.size();i++){
             Arc arc = arcs.get(i);
-            ArrayList<FillJob> compiledArc = compileArc(song,arc,timings,timingGroupPrefix+"arc_"+i+"_");
+            ArrayList<FillJob> compiledArc = compileArc(song,arc,timings,sceneControls,timingGroupPrefix+"arc_"+i+"_");
             results.addAll(compiledArc);
         }
         //编译Holds，对每一个Hold执行
         for (int i = 0; i < holds.size(); i++) {
             Hold hold = holds.get(i);
-            ArrayList<FillJob> compiledHold = compileHold(song,hold,timings,timingGroupPrefix+"arc_"+i+"_");
+            ArrayList<FillJob> compiledHold = compileHold(song,hold,timings,sceneControls,timingGroupPrefix+"arc_"+i+"_");
             results.addAll(compiledHold);
 
         }
+        // 渲染天地双押线
+        ArrayList<FillJob> doubleKeys = compileSkyGroundDoubleKeyLine(song, notes, arcs, timings, sceneControls, timingGroupArg, timingGroupPrefix + "double_key_");
+        results.addAll(doubleKeys);
 //        System.out.println("finished compiling timing group : "+timingGroupPrefix);
         return results;
     }
@@ -194,11 +269,14 @@ public class MainRender {
      * @param timings
      * @return
      */
-    public ArrayList<FillJob> compileNote(Song song, Note note, ArrayList<Timing> timings, String jobName){
+    public ArrayList<FillJob> compileNote(Song song, Note note, ArrayList<Timing> timings,ArrayList<Scenecontrol> sceneControls, String jobName){
         ArrayList<FillJob> results=new ArrayList<>();
         ArrayList<Infer> x_s = position_infer(song, timings, note.t);
         for (Infer infer:x_s){
             Integer frame =infer.frame;
+            if (hide_group(frame, sceneControls)){
+                continue;
+            }
             Double x = infer.position;
             FillJob tempFill = new FillJob("note",0,frame,false);
             tempFill.y_low = ground_y.intValue();
@@ -224,71 +302,120 @@ public class MainRender {
         return results;
     }
 
-    public ArrayList<FillJob> compileHold(Song song, Hold hold, ArrayList<Timing> timings, String jobName){
+    public ArrayList<FillJob> compileSkyGroundDoubleKeyLine(Song song, ArrayList<Note> notes, ArrayList<Arc> arcs, ArrayList<Timing> timings, ArrayList<Scenecontrol> sceneControls, String timingGroupArg,String jobName){
+        ArrayList<FillJob> results = new ArrayList<>();
+        if (timingGroupArg.equalsIgnoreCase("noinput")){
+            return results;
+        }
+        HashMap<Note,Arc> lines = new HashMap<>();
+        double frameTime = 1000/tps;
+        for(Note note:notes)
+            for (Arc arc: arcs)
+                for (int arctap:arc.arctaplist){
+                    if (note.t ==arctap){
+                        lines.put(note,arc);
+                    }
+                }
+        for (Note note:lines.keySet()){
+            Arc arc = lines.get(note);
+            for (int arcTap:arc.arctaplist){
+                if (note.t == arcTap){
+                    ArrayList<Double[]> position = arc.getPosition(note.t, zero_time_arc_play_dense);
+                    ArrayList<Infer> infers = position_infer(song,timings,arcTap);
+                    // 构造一个0长度arc
+                    double groundX = note.lane*0.5-0.75;
+                    double skyX = position.get(0)[0];
+                    double groundY = 0.0;
+                    double skyY = position.get(0)[1];
+                    Arc temp = new Arc(note.t, note.t, groundX, skyX, "s",groundY,skyY,0,"none",true,new ArrayList<>());
+                    ArrayList<FillJob> double_key = compileArc(song, temp, timings, sceneControls, "double_key");
+                    results.addAll(double_key);
+                }
+
+            }
+
+
+        }
+
+        return results;
+    }
+
+    public ArrayList<FillJob> compileHold(Song song, Hold hold, ArrayList<Timing> timings, ArrayList<Scenecontrol> sceneControls, String jobName){
         ArrayList<FillJob> results = new ArrayList<>();
         ArrayList<Infer> xFront = position_infer(song,timings,hold.t1);
+        Collections.sort(xFront);
         ArrayList<Infer> xTail = position_infer(song,timings,hold.t2);
+        Collections.sort(xTail);
         // 分离frame字段
         Integer xFrontStartFrame = xFront.get(xFront.size() - 1).frame;
         Integer xFrontEndFrame = xFront.get(0).frame;
-        Integer xTailStartFrame = xTail.get(xFront.size() - 1).frame;
+        Integer xTailStartFrame = xTail.get(xTail.size() - 1).frame;
         Integer xTailEndFrame = xTail.get(0).frame;
+        // 对于Hold头存在的帧
         for (Infer xFrame :xFront){
+            if (hide_group(xFrame.frame, sceneControls)){
+                continue;
+            }
             Double minX=0.0;
             Double maxX=0.0;
-            Double minZ=0.0;
-            Double maxZ=0.0;
-            Double midZ=0.0;
+            Double minZ=getGroundTrackZ(hold.lane, "left");
+            Double maxZ=getGroundTrackZ(hold.lane, "right");
+            Double midZ=getGroundTrackZ(hold.lane, "mid");
+            // 如果该帧存在于Hold尾出现之前
             if (xFrame.frame<xTailStartFrame){
                 minX = xFrame.position;
                 maxX = ground_x+track_x_upper_limit;
-                minZ = getGroundTrackZ(hold.lane,"left");
-                maxZ = getGroundTrackZ(hold.lane,"right");
-                midZ = getGroundTrackZ(hold.lane,"mid");
-            }else if(xFrame.frame<=xTailEndFrame){
+            }else // 如果该帧出现在Hold尾出现之后，结束之前
+                if(xFrame.frame<=xTailEndFrame){
                 minX = xFrame.position;
-                maxX = ground_x;
+                maxX = ground_x+track_x_upper_limit;
                 for (Infer xTailFrame:xTail){
-                    if (xTailFrame.frame==xFrame.frame){
-                        maxX=xTailFrame.position;
+                    if (xTailFrame.frame.intValue()==xFrame.frame.intValue()){
+                        maxX = xTailFrame.position;
                         break;
                     }
                 }
-                minZ = getGroundTrackZ(hold.lane,"left");
-                maxZ = getGroundTrackZ(hold.lane,"right");
-                midZ = getGroundTrackZ(hold.lane,"mid");
-            }else{
+            }else{// 如果该帧出现在Hold尾结束之后
                 System.out.println("Unexpected hold");
             }
             FillJob cur_side = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),hold_side_material,jobName);
             FillJob next_side = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),air_material,jobName);
-            FillJob cur_centre = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_side_material,jobName);
+            FillJob cur_centre = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_centre_material,jobName);
             FillJob next_centre = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),air_material,jobName);
             results.add(cur_side);
             results.add(cur_centre);
             results.add(next_side);
             results.add(next_centre);
         }
+        // 对于Hold尾存在的帧
         for (Infer xFrame :xTail){
+            if (hide_group(xFrame.frame, sceneControls)){
+                continue;
+            }
             Double minX=0.0;
             Double maxX=0.0;
-            Double minZ=0.0;
-            Double maxZ=0.0;
-            Double midZ=0.0;
+            Double minZ=getGroundTrackZ(hold.lane, "left");
+            Double maxZ=getGroundTrackZ(hold.lane, "right");
+            Double midZ=getGroundTrackZ(hold.lane, "mid");
+            // 当Hold头未结束
             if (xFrame.frame<=xFrontEndFrame){
-                continue;
-            }else if (xFrame.frame<=xTailEndFrame){
-                minX=ground_x;
+                for (Infer xFrontFrame: xFront){
+                    if (xFrontFrame.frame.intValue()==xFrame.frame.intValue()){
+                        minX = xFrontFrame.position;
+                        maxX = xFrame.position;
+                        break;
+                    }
+                }
+            }else // 当Hold头结束而Hold尾未结束
+                if (xFrame.frame<=xTailEndFrame){
+                minX = ground_x;
                 maxX = xFrame.position;
-                minZ = getGroundTrackZ(hold.lane, "left");
-                maxZ = getGroundTrackZ(hold.lane, "right");
-                midZ = getGroundTrackZ(hold.lane, "mid");
             }else{
                 System.out.println("Unexpected hold");
             }
             FillJob cur_side = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),hold_side_material,jobName);
             FillJob next_side = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),air_material,jobName);
-            FillJob cur_centre = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_side_material,jobName);
+            FillJob cur_centre = new FillJob("hold",2,xFrame.frame,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_centre_material,jobName);
             FillJob next_centre = new FillJob("air",10,xFrame.frame+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),air_material,jobName);
             results.add(cur_side);
             results.add(cur_centre);
@@ -296,7 +423,11 @@ public class MainRender {
             results.add(next_centre);
         }
         if (xFrontEndFrame<xTailStartFrame){
+            //Optimize Loop
             for (int i = xFrontEndFrame; i < xTailStartFrame; i++) {
+                if (hide_group(i, sceneControls)){
+                    continue;
+                }
                 Double minX=ground_x;
                 Double maxX=ground_x+track_x_upper_limit;
                 Double minZ=getGroundTrackZ(hold.lane,"left");
@@ -304,7 +435,7 @@ public class MainRender {
                 Double midZ=getGroundTrackZ(hold.lane,"mid");
                 FillJob cur_side = new FillJob("hold",2,i,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),hold_side_material,jobName);
                 FillJob next_side = new FillJob("air",10,i+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),minZ.intValue(),maxZ.intValue(),air_material,jobName);
-                FillJob cur_centre = new FillJob("hold",2,i,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_side_material,jobName);
+                FillJob cur_centre = new FillJob("hold",2,i,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),hold_centre_material,jobName);
                 FillJob next_centre = new FillJob("air",10,i+1,false,minX.intValue(),maxX.intValue(),ground_y.intValue(),ground_y.intValue(),midZ.intValue(),midZ.intValue(),air_material,jobName);
                 results.add(cur_side);
                 results.add(cur_centre);
@@ -317,6 +448,59 @@ public class MainRender {
         return results;
     }
 
+//    /**
+//     * 渲染：黑线，本体是Arc
+//     * @param song
+//     * @param arc
+//     * @param timings
+//     * @param jobName
+//     * @return
+//     */
+//    public ArrayList<ParticleJob> compileArcBlackLine(Song song, Arc arc, ArrayList<Timing> timings, String jobName){
+//        ArrayList<ParticleJob> results = new ArrayList<>();
+//        Double frameTime=1000/tps;
+//        if (arc.skylineBoolean){
+//            if (enable_black_line){
+//                Double start_frame_time = arc.t1-arc.t1%frameTime;
+//                Double cueTime=start_frame_time;
+//                while(cueTime<arc.t2){
+//                    ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
+//                    for (Double[] position:positions){
+//                        ArrayList<ParticleJob> fillJobs = compileBlackLineBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), jobName);
+//                        results.addAll(fillJobs);
+//                    }
+//                }
+//            }
+//        }
+//        return results;
+//    }
+//
+//    /**
+//     * 编译：渲染Arc黑线
+//     * @param song 歌曲song对象
+//     * @param timings TimingGroup
+//     * @param x 横截面的x坐标，相当于游戏中的z轴
+//     * @param y 横截面的y坐标，相当于游戏中的y轴
+//     * @param color 蛇颜色， 0，1，2分别是蓝色，红色，绿色
+//     * @param arcBodyTime 当前全局毫秒时间
+//     * @param jobName 任务名称，debug用
+//     * @return
+//     */
+//    public ArrayList<ParticleJob> compileBlackLineBody(Song song, ArrayList<Timing> timings, Double x,Double y,Integer color,Integer arcBodyTime,String jobName) {
+//        ArrayList<ParticleJob> results = new ArrayList<>();
+//        ArrayList<Infer> xS = position_infer(song, timings, arcBodyTime);
+//        for (int i = 0; i < xS.size(); i++) {
+//            Infer tempInfer = xS.get(i);
+//            Integer curFrame=tempInfer.frame;
+//            Double startX=tempInfer.position;
+//            Double startY=getSkyTrackY(y);
+//            Double startZ=getSkyTrackZ(x);
+//            ParticleJob particleJob = new ParticleJob(startX,startY,startZ,curFrame,"b");
+//            results.add(particleJob);
+//        }
+//        return results;
+//    }
+
     /**
      * 渲染：Arc，分天键和arc本体渲染
      * @param song
@@ -325,7 +509,7 @@ public class MainRender {
      * @param jobName
      * @return
      */
-    public ArrayList<FillJob> compileArc(Song song, Arc arc, ArrayList<Timing> timings, String jobName){
+    public ArrayList<FillJob> compileArc(Song song, Arc arc, ArrayList<Timing> timings, ArrayList<Scenecontrol> sceneControls,String jobName){
         ArrayList<FillJob> results = new ArrayList<>();
         //渲染Arctap
         List<Integer> arctaps = arc.arctaplist;
@@ -333,7 +517,7 @@ public class MainRender {
             Integer arctap = arctaps.get(i);
             ArrayList<Double[]> pois = arc.getPosition(arctap, this.zero_time_arc_play_dense);
             for (Double[] poi:pois){
-                ArrayList<FillJob> arcTapResult = this.compileArcTap(song, timings, poi[0], poi[1], arctap, jobName + "arctap_" + i + "_");
+                ArrayList<FillJob> arcTapResult = this.compileArcTap(song, timings, poi[0], poi[1], arctap, sceneControls,jobName + "arctap_" + i + "_");
                 results.addAll(arcTapResult);
             }
         }
@@ -341,19 +525,27 @@ public class MainRender {
         Double frameTime=1000/tps;
         //是黑线
         if (arc.skylineBoolean){
-            //黑线不在这里处理
-//            if (enable_black_line){
-//
-//            }
+            // 如果开启黑线绘制
+            if (enable_black_line) {
+                Double start_frame_time = arc.t1-arc.t1%frameTime;
+                Double cueTime=start_frame_time;
+                while(cueTime<arc.t2){
+                    ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
+                    for (Double[] position:positions){
+                        ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], -1, cueTime.intValue(), sceneControls, jobName);
+                        results.addAll(fillJobs);
+                    }
+                    cueTime+=frameTime*tps/default_speed_per_second/black_line_particle_dense;
+                }
+            }
         }else{
             //是实体蛇
             Double start_frame_time = arc.t1-arc.t1%frameTime;
-//                arc.getPosition(, zero_time_arc_play_dense);
             Double cueTime=start_frame_time;
             while(cueTime<arc.t2){
                 ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
                 for (Double[] position:positions){
-                    ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), jobName);
+                    ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), sceneControls, jobName);
                     results.addAll(fillJobs);
                 }
                 cueTime+=frameTime*tps/default_speed_per_second;
@@ -372,11 +564,14 @@ public class MainRender {
      * @param jobName
      * @return
      */
-    public ArrayList<FillJob> compileArcTap(Song song, ArrayList<Timing> timings, Double x,Double y,Integer arcTapTime,String jobName) {
+    public ArrayList<FillJob> compileArcTap(Song song, ArrayList<Timing> timings, Double x,Double y,Integer arcTapTime, ArrayList<Scenecontrol> sceneControls,String jobName) {
         ArrayList<FillJob> results = new ArrayList<>();
         ArrayList<Infer> xS = position_infer(song, timings, arcTapTime);
         for (Infer infer:xS){
             Integer frame =infer.frame;
+            if (hide_group(frame, sceneControls)){
+                continue;
+            }
             Double startX = infer.position;
             Double startY = getSkyTrackY(y);
             Double startZ = getSkyTrackZ(x)-(ground_interval-1)/2;
@@ -407,30 +602,34 @@ public class MainRender {
 
     /**
      * 编译：渲染一格宽的Arc横截面
-     * @param song
-     * @param timings
-     * @param x
-     * @param y
-     * @param color
-     * @param arcBodyTime
-     * @param jobName
+     * @param song 歌曲song对象
+     * @param timings TimingGroup
+     * @param x 横截面的x坐标，相当于游戏中的z轴
+     * @param y 横截面的y坐标，相当于游戏中的y轴
+     * @param color 蛇颜色， 0，1，2分别是蓝色，红色，绿色
+     * @param arcBodyTime 当前全局毫秒时间
+     * @param jobName 任务名称，debug用
      * @return
      */
-    public ArrayList<FillJob> compileArcBody(Song song, ArrayList<Timing> timings, Double x,Double y,Integer color,Integer arcBodyTime,String jobName) {
+    public ArrayList<FillJob> compileArcBody(Song song, ArrayList<Timing> timings, Double x,Double y,Integer color,Integer arcBodyTime,ArrayList<Scenecontrol> sceneControls,String jobName) {
         ArrayList<FillJob> results = new ArrayList<>();
         ArrayList<Infer> xS = position_infer(song, timings, arcBodyTime);
         for (int i = 0; i < xS.size(); i++) {
             Infer tempInfer = xS.get(i);
             Integer curFrame=tempInfer.frame;
+            if (hide_group(curFrame, sceneControls)){
+                continue;
+            }
             Double startX=tempInfer.position;
             Double endX=tempInfer.position;
             Double startY=getSkyTrackY(y);
             Double endY=getSkyTrackY(y);
             Double startZ=getSkyTrackZ(x);
             Double endZ=getSkyTrackZ(x);
-            if (color==-1){//颜色-1，为黑线
-
-            }if (color==0){//颜色0，蓝色蛇
+            if(color==-1){ // 颜色-1，黑线
+                FillJob particleFill = new FillJob("blackline", 9, curFrame, false, startX,startY,startZ,"end_rod",jobName);
+                results.add(particleFill);
+            } else if (color==0){//颜色0，蓝色蛇
                 FillJob centreFill = new FillJob("arc",4,curFrame,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),blue_arc_centre_material,jobName);
                 results.add(centreFill);
                 FillJob centreAir = new FillJob("air",10,curFrame+1,false,startX.intValue(),endX.intValue(),startY.intValue(),endY.intValue(),startZ.intValue(),endZ.intValue(),air_material,jobName);
@@ -494,6 +693,8 @@ public class MainRender {
         }
         return results;
     }
+
+
 
     /**
      * 编译：地面轨道音符的横向位置，可用位置为left，right，mid，其他默认为mid
@@ -611,18 +812,23 @@ public class MainRender {
         Double frame_time = 1000/tps;
         Integer scene_frame=0;
         for (int index=0;index<scenecontrols.size();index++){
-            if(scenecontrols.get(index).type== "hidegroup"){
+            if(scenecontrols.get(index).type.equalsIgnoreCase("hidegroup")){
                 scene_frame = (int)(scenecontrols.get(index).t/frame_time);
                 if(closest_frame <= scene_frame && scene_frame <= frame){
                     closest_frame = scene_frame;
-                    if(scenecontrols.get(index).param2==1)
-                        hide_flag=true;
-                    else if (scenecontrols.get(index).param2==0)
-                        hide_flag=false;
+                    if(scenecontrols.get(index).param2==1) {
+                        hide_flag = true;
+                        break;
+                    }
+                    else if (scenecontrols.get(index).param2==0) {
+                        hide_flag = false;
+                        break;
+                    }
                     else{
                         System.out.println(scenecontrols.get(index).toString());
                         System.out.println("非法的hidegroup数值");
                         hide_flag = false;
+                        break;
                     }
                 }
             }
