@@ -55,6 +55,8 @@ public class MainRender {
     public Boolean enable_double_note_line;
     public Double double_note_line_particle_dense;
 
+    public Integer short_black_line_use_zero_time_arc_play_dense_threshold;
+
 
     //运行时状态
     public Boolean compiling=false;
@@ -94,6 +96,7 @@ public class MainRender {
                     compileFinished=false;
                     this.cancel();
                     plugin.info.broadcastWarn("error_occurred_while_compiling",new ArrayList<>());
+                    e.printStackTrace();
                 }
 
             }
@@ -527,28 +530,34 @@ public class MainRender {
         if (arc.skylineBoolean){
             // 如果开启黑线绘制
             if (enable_black_line) {
-                Double start_frame_time = arc.t1-arc.t1%frameTime;
+//                Double start_frame_time = arc.t1-arc.t1%frameTime;
+                Double start_frame_time = Double.valueOf(arc.t1);
                 Double cueTime=start_frame_time;
-                while(cueTime<arc.t2){
+                while(cueTime<=arc.t2){
                     ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
                     for (Double[] position:positions){
                         ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], -1, cueTime.intValue(), sceneControls, jobName);
                         results.addAll(fillJobs);
                     }
-                    cueTime+=frameTime*tps/default_speed_per_second/black_line_particle_dense;
+                    if ((arc.t2-arc.t1)<short_black_line_use_zero_time_arc_play_dense_threshold){
+                        cueTime+=frameTime*tps/default_speed_per_second/zero_time_arc_play_dense;
+                    }else{
+                        cueTime+=frameTime*tps/default_speed_per_second/black_line_particle_dense;
+                    }
                 }
             }
         }else{
             //是实体蛇
-            Double start_frame_time = arc.t1-arc.t1%frameTime;
+//            Double start_frame_time = arc.t1-arc.t1%frameTime;
+            Double start_frame_time = Double.valueOf(arc.t1);
             Double cueTime=start_frame_time;
-            while(cueTime<arc.t2){
+            while(cueTime<=arc.t2){
                 ArrayList<Double[]> positions = arc.getPosition(cueTime.intValue(), zero_time_arc_play_dense);
                 for (Double[] position:positions){
                     ArrayList<FillJob> fillJobs = compileArcBody(song, timings, position[0], position[1], arc.color, cueTime.intValue(), sceneControls, jobName);
                     results.addAll(fillJobs);
                 }
-                cueTime+=frameTime*tps/default_speed_per_second;
+                cueTime+=frameTime*tps/default_speed_per_second/2;
             }
         }
         return results;
@@ -740,26 +749,25 @@ public class MainRender {
      */
     public ArrayList<Infer> position_infer(Song song, ArrayList<Timing> timings, Integer time){
         ArrayList<Infer> x_s = new ArrayList<>();
-        Double frame_time = 1000/tps;
-        Integer timings_pointer = 0;
-        Float bpm_base = song.bpm_base;
+        double frame_time = 1000/tps;
+        int timings_pointer = 0;
+        float bpm_base = song.bpm_base;
+
         //正向遍历，定位到time后的第一个timing记录
         while(timings.get(timings_pointer).t<=time){
             timings_pointer+=1;
             if (timings_pointer==timings.size())
                 break;
         }
-        //debug
-//        System.out.println("Forwarding to pointer "+(timings_pointer-1));
-
         timings_pointer-=1;
         //当前帧的毫秒。帧对齐，这一帧内会撞判定线
-        Double cur_time = Double.valueOf(time)-time%frame_time;
+        double cur_time = Double.valueOf(time)-time%frame_time;
 //        Double cur_time = Double.valueOf(time);
         //位置的帧对齐，使长度极短的物件如装饰arc也可以渲染
-        Double cur_x = (time%frame_time)*timings.get(timings_pointer).bpm*default_speed_per_second/bpm_base/1000+ground_x;
-        Double forward_frame;
-        Integer start_timing,end_timing;
+        double cur_x = (time%frame_time)*timings.get(timings_pointer).bpm*default_speed_per_second/bpm_base/1000+ground_x;
+        double forward_frame;
+        int start_timing,end_timing;
+
         while((track_x_upper_limit+ground_x)>cur_x && cur_x>(track_x_lower_limit+ground_x)) {
             // 上一帧时间和下一帧时间
             forward_frame = cur_time - frame_time;
@@ -782,21 +790,26 @@ public class MainRender {
                     }
                 }
             }
+
             if (start_timing == end_timing){//在同一个timing里面
                 cur_x += frame_time * timings.get(start_timing).bpm * default_speed_per_second / bpm_base / 1000;
             }else{ // 一帧横跨多个timing
-                for (int index=start_timing;index<end_timing+1;index++){
-                    if(index==start_timing)
-                        cur_x+=(timings.get(index+1).t-forward_frame)*timings.get(index).bpm*default_speed_per_second/bpm_base/1000;
-                    else if(index==end_timing)
-                        cur_x+=(cur_time-timings.get(index).t)*timings.get(index).bpm*default_speed_per_second/bpm_base/1000;
-                    else
-                        cur_x+=(timings.get(index+1).t-timings.get(index).t)*timings.get(index).bpm*default_speed_per_second/bpm_base/1000;
+                for (int index=start_timing;index<=end_timing;index++){
+                    if(index==start_timing) {
+                        cur_x += (timings.get(index + 1).t - forward_frame) * timings.get(index).bpm * default_speed_per_second / bpm_base / 1000;
+                    }
+                    else if(index==end_timing) {
+                        cur_x += (cur_time - timings.get(index).t) * timings.get(index).bpm * default_speed_per_second / bpm_base / 1000;
+                    }
+                    else {
+                        cur_x += (timings.get(index + 1).t - timings.get(index).t) * timings.get(index).bpm * default_speed_per_second / bpm_base / 1000;
+                    }
                 }
             }
             x_s.add(new Infer((int)(forward_frame/frame_time),cur_x));
             cur_time-=frame_time;
         }
+
         return x_s;
     }
 
@@ -807,10 +820,10 @@ public class MainRender {
      * @return
      */
     public Boolean hide_group(Integer frame, ArrayList<Scenecontrol> scenecontrols){
-        Boolean hide_flag = false;
-        Integer closest_frame=0;
-        Double frame_time = 1000/tps;
-        Integer scene_frame=0;
+        boolean hide_flag = false;
+        int closest_frame=0;
+        double frame_time = 1000/tps;
+        int scene_frame=0;
         for (int index=0;index<scenecontrols.size();index++){
             if(scenecontrols.get(index).type.equalsIgnoreCase("hidegroup")){
                 scene_frame = (int)(scenecontrols.get(index).t/frame_time);
@@ -818,16 +831,16 @@ public class MainRender {
                     closest_frame = scene_frame;
                     if(scenecontrols.get(index).param2==1) {
                         hide_flag = true;
-                        break;
+//                        break;
                     }
                     else if (scenecontrols.get(index).param2==0) {
                         hide_flag = false;
-                        break;
+//                        break;
                     }
                     else{
                         System.out.println(scenecontrols.get(index).toString());
                         System.out.println("非法的hidegroup数值");
-                        hide_flag = false;
+//                        hide_flag = false;
                         break;
                     }
                 }
@@ -889,6 +902,7 @@ public class MainRender {
         this.black_line_particle_dense=config.getDouble("Render.Particle.black_line_particle_dense");
         this.enable_double_note_line=config.getBoolean("Render.Particle.enable_double_note_line");
         this.double_note_line_particle_dense=config.getDouble("Render.Particle.double_note_line_particle_dense");
+        this.short_black_line_use_zero_time_arc_play_dense_threshold=config.getInt("Render.Particle.short_black_line_use_zero_time_arc_play_dense_threshold");
         //Render.Material 材料配置预读取
         this.air_material=config.getString("Render.Material.air_material");
         this.note_material=config.getString("Render.Material.note_material");

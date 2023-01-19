@@ -125,7 +125,12 @@ public class AffReader {
             line = lines.get(i).strip();
             if (line.startsWith("timing(")){
                 String[] segments = line.replace("timing(","").replace(");","").split(",");
-                timings.add(new Timing(Integer.parseInt(segments[0]),Float.parseFloat(segments[1]),Float.parseFloat(segments[2])));
+                float bpm = Float.parseFloat(segments[1]);
+//                if (bpm==0)
+//                    bpm = 0.0001f;
+//                if (bpm<0)
+//                    bpm = 0-bpm;
+                timings.add(new Timing(Integer.parseInt(segments[0]),bpm,Float.parseFloat(segments[2])));
             }else if (line.startsWith("(")){
                 String[] segments = line.replace("(","").replace(");","").split(",");
                 notes.add(new Note(Integer.parseInt(segments[0]),Integer.parseInt(segments[1])));
