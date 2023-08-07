@@ -101,7 +101,7 @@ Info:
   error_occurred_while_starting_play: 启动播放时出现了内部错误
   error_occurred_while_playing: 播放过程中出现了内部错误，请更换谱面或者尝试/reload confirm
   error_occurred_while_compiling: 编译中出现了错误，请更换谱面或者尝试/reload confirm
-  compile_finished: 歌曲编译完毕
+  compile_finished: 歌曲编译完毕，使用/arcaea play confirm来游玩！
   play_finished: 播放完毕
 # 没啥用的版本号，可能是永远的1.0）
 Version: 1.0
