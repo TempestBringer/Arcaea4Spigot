@@ -190,6 +190,14 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
                         }
                         return true;
                     }
+                }else if (args[0].equalsIgnoreCase("InitTrack")){
+                    if (args.length!=1){ //展示编译结果以及打歌信息/arcaea play
+                        plugin.info.sendWarn("argument_num_error", new ArrayList<>(),player);
+                        return true;
+                    }else { // /arcaea InitTrack
+                        plugin.affPlayer.onReceiveInitTrackCommand();
+                        return true;
+                    }
                 }
             }
         }
@@ -203,6 +211,7 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
         list.add("help");
         list.add("select");
         list.add("play");
+        list.add("InitTrack");
         return list;
     }
 
@@ -315,7 +324,8 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
             Integer diff_comps_pointer=0;
 
             //对每个难度
-            for (Difficulty diff:song.difficulties){
+            for (int j=0;j<song.difficulties.size();j++){
+                Difficulty diff = song.difficulties.get(j);
                 String diff_rate= String.valueOf(diff.rating);
                 if (diff.ratingPlus)
                     diff_rate=diff_rate+"+";
@@ -332,7 +342,7 @@ public class BasicCommand implements CommandExecutor, TabCompleter {
                     diffCom.setStrikethrough(true);
                     diffCom.setColor(net.md_5.bungee.api.ChatColor.DARK_GRAY);
                 }else{
-                    diffCom.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/arcaea select "+song.idx+" "+diff.ratingClass));
+                    diffCom.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/arcaea select "+ song.idx +" "+ j ));
                 }
                 diff_comps[diff_comps_pointer]=diffCom;
                 diff_comps_pointer++;

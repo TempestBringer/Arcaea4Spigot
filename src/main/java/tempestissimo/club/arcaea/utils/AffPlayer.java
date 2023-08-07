@@ -52,6 +52,15 @@ public class AffPlayer {
         return play;
     }
 
+
+    /**
+     * 接收到轨道绘制指令
+     */
+    public void onReceiveInitTrackCommand(){
+        ArrayList<FillJob> fillJobs = plugin.mainRender.prepareTrack();
+        executeFill(0, fillJobs);
+    }
+
     /**
      * 执行播放
      * @return

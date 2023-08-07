@@ -1,86 +1,92 @@
 Render:
   Material:
-    # air (or change to light, will make track brighter)
+    # 空气使用的方块 (默认为air如果改成”light“，会使轨道更亮)
     air_material: air
-    # note
+    # 地键使用的方块
     note_material: sea_lantern
-    # arctap
+    # 天键使用的方块
     arctap_material: pearlescent_froglight
-    # hold
+    # 长条使用的方块，分为中央直线和其他部分两个材质
     hold_side_material: light_blue_concrete
     hold_centre_material: sea_lantern
-    # red arc
+    # 红蛇使用的方块，分别为：是否仅有中心填充、外围填充材质、中心填充材质、红蛇支撑材质
     red_arc_centre_only: false
     red_arc_material: pink_stained_glass
     red_arc_centre_material: glowstone
     red_arc_support_material: pink_stained_glass_pane
-    # blue arc
+    # 蓝蛇使用的方块，分别为：是否仅有中心填充、外围填充材质、中心填充材质、蓝蛇支撑材质
     blue_arc_centre_only: false
     blue_arc_material: blue_stained_glass
     blue_arc_centre_material: sea_lantern
     blue_arc_support_material: blue_stained_glass_pane
-    # green arc
+    # 绿蛇使用的方块，分别为：是否仅有中心填充、外围填充材质、中心填充材质、绿蛇支撑材质
     green_arc_centre_only: false
     green_arc_material: lime_stained_glass
     green_arc_centre_material: emerald_block
     green_arc_support_material: lime_stained_glass_pane
-    # ground
+    # 地面轨道材质，分别为：轨道面材质、轨道分界线材质、额外轨道面材质、额外轨道分界线材质
     track_surface_material: white_concrete
     track_line_material: gray_concrete
     extend_track_surface_material: white_stained_glass
     extend_track_line_material: light_gray_stained_glass
   Position:
-    # execute in which dimension
+    # 在哪个世界中执行，请填写维度名称（注意默认的主世界是world而不是overworld）
+    # 之所以不是常用的world是希望避免未经认真配置导致的存档损坏
     dimension: void
-    # track base: 1 block above the centre of track 0
+    # 地面轨道起点（该起点是0轨道中心点的上面一格）
     ground_x: 1.0
     ground_y: 1.0
     ground_z: -20.0
+    # 轨道宽度（格）
     ground_interval: 6.0
-    # infer distance: distance in front of/behind input line
+    # 推理在纵深方向（垂直于判定面方向）上的区间长度
     track_x_upper_limit: 64.0
     track_x_lower_limit: -10.0
-    # all arc raise height (block)
+    # 所有arc相对地面轨道的提升高度（格子），最终加算，用于调整整体高度
     arc_raise_block: 1.0
-    # the height of sky input / ground_interval
+    # SkyInput的高度相当于多少条地面轨道，在上一条之前计算
     arc_raise_ratio: 1.0
-    # note default moving speed (block) per second
+    # 谱面基准流动速度（格每秒）
     default_speed_per_second: 96.0
   Particle:
-    # enable black line render or not
+    # 是否渲染装饰线
     enable_black_line: true
-    # how many particle in a block
-    black_line_particle_dense: 0.5
-    # enable double-click line render or not
+    # 用于描绘装饰线的粒子密度（个粒子每格）
+    black_line_particle_dense: 0.3
+    # 是否渲染双押线
     enable_double_note_line: true
-    # how many particle in a block
+    # 用于描绘双押线的粒子密度（个粒子每格）
     double_note_line_particle_dense: 2
-    # none zero black line shorter than this will use "zero_time_arc_play_dense"
-    short_black_line_use_zero_time_arc_play_dense_threshold: 300
+    # 长度短于这个长度（毫秒）的装饰线会使用"zero_time_arc_play_dense"作为渲染密度
+    short_black_line_use_zero_time_arc_play_dense_threshold: 100
   Time:
-    # play after last note (tick)
+    # 在最后一条渲染指令后的等待时间（刻，理想状态下1刻=0.05秒）
     wait_after_last_note: 100
-    # wait before play (tick)
+    # 在播放前的等待时间（刻，理想状态下1刻=0.05秒）
     wait_before_playing: 100
-    # block dense of arc which starts as it ends
+    # 零时长Arc粒子渲染密度
     zero_time_arc_play_dense: 10
-  # don't change this tps on spigot server and its branches unless you want to speed up or slow down the whole render.
-  # change this will cause async music and vision without Fabric's Carpet Mod to change TPS.
+  # 模拟渲染使用的TPS，请不要在spigot系列核心的服务器上更改这个功能，除非你想要令整个渲染效果更加快或者慢。
+  # 在Spigot系列服务器上将这个值调整到>20的情况会使渲染在视觉上”更慢“，而<20会看起来”更快“。
+  # 但不管怎样，该渲染tps与实际执行tps的不同会导致音乐与视觉上的不同步。
   tps: 20.0
-  # normal pi, hugely change this may cause weird arc
+  # 普通的π值，更改这个值大概会获得更有趣的arc
   pi: 3.1415926
 Display:
-  # control list length of "/arcaea songlist".
+  # "/arcaea songlist"指令返回每页歌曲数量.
   song_number_per_page: 10
-  # prefer which language, available: 'en','zh-Hans','zh-Hant','ja','ko'.
-  # other unavailable languages will function as 'en'
+  # 倾向的歌曲译名，可用的值有'en','zh-Hans','zh-Hant','ja','ko'。
+  # 不可用的语言会默认为'en'执行。
   language: zh-Hans
 File:
-  # path of your song folder
-  # you'd better not contain space in this path
-  execute_path: D:/ProgramData/Datas/arcaea
+  # 歌曲文件夹路径，这个文件夹下需要有packlist、songlist以及songs文件夹
+  # songs文件夹里有若干以songlist中各歌曲的id作为命名的文件夹，而这些文件夹中需要有对应的谱面，分别以0.aff，1.aff，2.aff以此类推
+  # 导入packlist暂时没用，可以先放个空文件在那里用来过检测
+  # 如果不使用绝对路径，则相对路径的起点应当是服务端jar所在路径，路径含有空格则需要用引号引起
+  execute_path: "./arcaea"
 Info:
-  # placeholder is <!>
+  # 一些文本，方便多语言支持或改换为自定义文本
+  # 待填充模板是<!>，会由程序填充，最好别动，虽然现在没有
   song_menu: 歌曲菜单
   argument_type_error: 参数类型错误
   argument_num_error: 参数数量错误
@@ -96,4 +102,5 @@ Info:
   error_occurred_while_compiling: 编译中出现了错误，请更换谱面或者尝试/reload confirm
   compile_finished: 歌曲编译完毕
   play_finished: 播放完毕
+# 没啥用的版本号，可能是永远的1.0）
 Version: 1.0

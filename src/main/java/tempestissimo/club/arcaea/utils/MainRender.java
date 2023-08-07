@@ -9,6 +9,7 @@ import tempestissimo.club.arcaea.utils.entities.infer_related.Infer;
 import tempestissimo.club.arcaea.utils.entities.infer_related.ParticleJob;
 import tempestissimo.club.arcaea.utils.entities.note_related.*;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class MainRender {
@@ -66,8 +67,33 @@ public class MainRender {
     public Integer minTick;
     public Integer maxTick;
 
+    /**
+     * 返回绘制轨道轨道的任务
+     * @return
+     */
+    public ArrayList<FillJob> prepareTrack(){
+        ArrayList<FillJob> results = new ArrayList<>();
+        // 起始z点
+        for (int i=1;i<5;i++){
+            int z = ground_z.intValue()+i*ground_interval.intValue();
+            int x_min = ground_x.intValue()+track_x_lower_limit.intValue();
+            int x_max = ground_x.intValue()+track_x_upper_limit.intValue();
+            int y = ground_y.intValue()-1;
+            int z_min = z-ground_interval.intValue()/2;
+            int z_max = z+ground_interval.intValue()/2;
+            results.add(new FillJob("ground",0, 0,false,x_min,x_max,y,y,z_min,z_max,track_surface_material,"track_surface"));
+            results.add(new FillJob("ground",0, 0,false,x_min,x_max,y,y,z_min,z_min,track_line_material,"track_line"));
+            if (i==3){
+                results.add(new FillJob("ground",0, 0,false,x_min,x_max,y,y,z_max,z_max,track_line_material,"track_line"));
 
+            }
+        }
+        int z_min = ground_z.intValue() + ground_interval.intValue()/2;
+        int z_max = ground_z.intValue() + ground_interval.intValue()*9/2;
+        results.add(new FillJob("ground",0, 0,false,ground_x.intValue(),ground_x.intValue(),ground_y.intValue()-1,ground_y.intValue()-1,z_min,z_max,track_line_material,"track_line"));
 
+        return results;
+    }
 
 
     /**
