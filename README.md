@@ -20,3 +20,6 @@
 3. 特别注意编辑config中的"Render.Position.dimension"设置为用于播放的维度
 4. 特别注意编辑"File.execute_path"为你自己准备的谱面以及songlist相关资源文件夹；资源文件夹要求下有songlist、packlist(这个暂时没用)以及songs文件夹，songs文件夹里有若干以songlist中各歌曲的id作为命名的文件夹，而这些文件夹中需要有对应的谱面，分别以0.aff，1.aff，2.aff以此类推，如果不使用绝对路径，则相对路径的起点应当是服务端jar所在路径。
 5. 配置好以后就可以使用/arcaea系列命令进行观看了。
+
+参考视频：
+https://www.bilibili.com/video/BV1du411J7aC
