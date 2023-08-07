@@ -43,7 +43,7 @@ Render:
     track_x_upper_limit: 64.0
     track_x_lower_limit: -10.0
     # 所有arc相对地面轨道的提升高度（格子），最终加算，用于调整整体高度
-    arc_raise_block: 1.0
+    arc_raise_block: 2.0
     # SkyInput的高度相当于多少条地面轨道，在上一条之前计算
     arc_raise_ratio: 1.0
     # 谱面基准流动速度（格每秒）
