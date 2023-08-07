@@ -1,11 +1,14 @@
 # Arcaea4Spigot
-Implement Arcaea In Spigot Minecraft Server.
-Compared with "python and datapack implement" version, will provide more features:
- - Reduce 90%+ Mem Usage.
- - Reduce 95%+ Compile Time.
- - More Flexible Online Aff Select and Compile.
- - Optimized Fill Order, Reduced Duplicate Block Fill.
- - Add Hit Respond Support (TODO).
- - Compatible with correct .aff file.
 
-Still working......
+在Minecraft中实现了Arcaea谱面播放（Spigot系列核心）
+对比Python实现的版本，提供了以下特性：
+ - 减少90%以上运行时内存消耗
+ - 减少95%以上谱面编译时间
+ - 更加灵活的在线Aff选择-编译-播放
+ - 优化了方块填充顺序，减少了重复填充
+ - 一定的自制谱兼容性
+
+展望：
+ - 添加打击效果，这涉及判定
+ - 优化代码结构以及可读性（如你所见这里现在是一坨屎山）
+ - 多平台适配（其他的服务器核心，或者客户端执行，这样能减少网络开支）

@@ -49,6 +49,7 @@ Render:
     # 谱面基准流动速度（格每秒）
     default_speed_per_second: 96.0
   Particle:
+    # 非常重要：粒子相关的渲染非常消耗网络带宽！如果不是在本地的服务器又把以下数值开的很高，可能网络会吃不消！
     # 是否渲染装饰线
     enable_black_line: true
     # 用于描绘装饰线的粒子密度（个粒子每格）
